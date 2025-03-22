@@ -1,0 +1,70 @@
+name: Launcher Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.13.2
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.13.2
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Configure ccache
+        run: |
+          echo "export CC='ccache gcc'" >> $GITHUB_ENV
+          echo "export CXX='ccache g++'" >> $GITHUB_ENV
+          echo "export CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
+          echo "export CCACHE_COMPRESS=true" >> $GITHUB_ENV
+          echo "export CCACHE_MAXSIZE=500M" >> $GITHUB_ENV
+
+      - name: Restore ccache Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
+      
+      - name: Build Executable
+        run: |
+          python -m nuitka --standalone --onefile --assume-yes-for-downloads --include-package-data=flet --output-filename=cube-launcher --include-package-data=minecraft_launcher_lib:version.txt main.py
+
+      - name: Save ccache Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ runner.os }}-${{ github.run_id }}
+
+      - name: Upload Windows Artifacts
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows Build
+          path: |
+            cube-launcher.exe
+          include-hidden-files: true
+
+      - name: Upload Linux Artifacts
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linux Build
+          path: |
+            cube-launcher
+          include-hidden-files: true
