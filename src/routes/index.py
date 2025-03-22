@@ -221,7 +221,7 @@ class MainPage(ft.View):
             installed_versions_list.append(version["id"])
         print(f"Installed versions list: {installed_versions_list}")
         # check in latest release is installed
-        if not latest_release in installed_versions_list and not latest_forge in installed_versions_list:
+        if not all((latest_release in installed_versions_list, latest_forge in installed_versions_list)):
             print("Downloading game...")
             self._progress_bar.visible = True
             self._progress_text.visible = True

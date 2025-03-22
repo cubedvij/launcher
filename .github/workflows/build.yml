@@ -43,7 +43,15 @@ jobs:
       
       - name: Build Executable
         run: |
-          python -m nuitka --standalone --onefile --assume-yes-for-downloads --include-package-data=flet --output-filename=cube-launcher --include-package-data=minecraft_launcher_lib:version.txt main.py
+          python -m nuitka
+          --standalone
+          --onefile
+          --assume-yes-for-downloads
+          --include-package-data=flet
+          --output-filename=cube-launcher
+          --output-dir=dist
+          --include-package-data=minecraft_launcher_lib:version.txt
+          main.py
 
       - name: Save ccache Cache
         uses: actions/cache@v4
@@ -57,7 +65,7 @@ jobs:
         with:
           name: Windows Build
           path: |
-            cube-launcher.exe
+            dist/cube-launcher.exe
           include-hidden-files: true
 
       - name: Upload Linux Artifacts
@@ -66,5 +74,5 @@ jobs:
         with:
           name: Linux Build
           path: |
-            cube-launcher
+            dist/cube-launcher
           include-hidden-files: true

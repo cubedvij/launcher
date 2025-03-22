@@ -161,3 +161,8 @@ cython_debug/
 
 # Flet
 storage/
+
+# nuitka
+main.build/
+main.dist/
+main.onefile-build/
