@@ -28,9 +28,10 @@ jobs:
       - uses: Nuitka/Nuitka-Action@main
         with:
           nuitka-version: main
-          include-package-data: minecraft_launcher_lib:version.txt, flet
-          output-filename: cube-launcher
-          output-dir: dist
+          include-package-data: |
+           minecraft_launcher_lib:version.txt
+           flet
+          output-file: cube-launcher
           script-name: main.py
           mode: app
 
@@ -39,6 +40,6 @@ jobs:
         with:
           name: ${{ runner.os }} Build
           path: |
-            dist/cube-launcher.exe
-            dist/cube-launcher
+            build/cube-launcher.exe
+            build/cube-launcher
           include-hidden-files: true
