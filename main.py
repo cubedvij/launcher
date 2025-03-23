@@ -2,6 +2,7 @@ import flet as ft
 
 from src.auth import account
 from src.routes import LoginPage, MainPage, RegisterPage, ProfilePage, SettingsPage
+from src.config import WINDOW_SIZE, LAUNCHER_NAME, LAUNCHER_VERSION
 
 # Fix SSL on Linux
 import certifi
@@ -9,10 +10,8 @@ import os
 
 os.environ["SSL_CERT_FILE"] = certifi.where()
 
-WINDOW_SIZE = (900, 540)
-
 def main(page: ft.Page):
-    page.title = "Кубічний Лаунчер" 
+    page.title = f"{LAUNCHER_NAME} v{LAUNCHER_VERSION}"
     page.window.width, page.window.height = WINDOW_SIZE
     # page.window.min_width, page.window.min_height = WINDOW_SIZE
     # page.window.max_width, page.window.max_height = WINDOW_SIZE
