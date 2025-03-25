@@ -1,4 +1,5 @@
 import base64
+from turtle import shape
 import flet as ft
 
 from ..auth import account
@@ -36,12 +37,20 @@ class ProfilePage(ft.View):
         self._appbar = ft.AppBar(
             leading=ft.IconButton(
                 icon=ft.Icons.ARROW_BACK,
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(radius=8),
+                ),
                 on_click=self.go_index,
                 tooltip="На головну",
             ),
             actions=[
                 ft.IconButton(
+                    width=64,
+                    height=64,
                     icon=ft.Icons.LOGOUT,
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                    ),
                     on_click=self.open_alert,
                     tooltip="Вийти з аккаунта",
                 ),
@@ -69,7 +78,7 @@ class ProfilePage(ft.View):
                 text_vertical_align=ft.VerticalAlignment.START,
                 border=ft.InputBorder.UNDERLINE,
                 filled=True,
-                on_submit=self._save_nickname
+                on_submit=self._save_nickname,
             ),
             subtitle=ft.Text(
                 # account.user["user"]["players"][0]["uuid"],
@@ -110,7 +119,6 @@ class ProfilePage(ft.View):
         self._skin_settings = ft.Row(
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             alignment=ft.MainAxisAlignment.CENTER,
-            spacing=8,
             controls=[
                 ft.FilledTonalButton(
                     "Завантажити скін",
@@ -134,7 +142,6 @@ class ProfilePage(ft.View):
         self._cape_settings = ft.Row(
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             alignment=ft.MainAxisAlignment.CENTER,
-            spacing=8,
             controls=[
                 ft.FilledTonalButton(
                     "Завантажити плащ",
@@ -170,7 +177,6 @@ class ProfilePage(ft.View):
         self._change_password = ft.Column(
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             alignment=ft.MainAxisAlignment.CENTER,
-            spacing=8,
             controls=[
                 self._new_password,
                 self._confirm_password,
@@ -194,21 +200,20 @@ class ProfilePage(ft.View):
                 padding=ft.Padding(8, 0, 8, 0),
                 content=ft.Column(
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    spacing=4,
                     expand=True,
                     controls=[
                         self._list_tile,
-                        ft.Divider(),
+                        ft.Divider(height=4),
                         self._skin_types,
                         self._skin_settings,
                         self._cape_settings,
-                        ft.Divider(),
                         # change password
                         ft.Text(
                             "Зміна пароля",
                             size=14,
                             weight=ft.FontWeight.BOLD,
                         ),
+                        ft.Divider(height=4),
                         self._change_password,
                     ],
                 ),
@@ -218,13 +223,13 @@ class ProfilePage(ft.View):
             # src=f"{SKINS_CACHE_FOLDER}/{account.skin_hash}-skin.png",
             src=None,
             width=216,
-            height=392
+            height=392,
         )
         self._skin_back_image = ft.Image(
             # src=f"{SKINS_CACHE_FOLDER}/{account.skin_hash}-back.png",
             src=None,
             width=216,
-            height=392
+            height=392,
         )
 
         self.pagelet = ft.Pagelet(

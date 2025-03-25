@@ -8,7 +8,7 @@ import minecraft_launcher_lib as mcl
 from ..auth import account
 from ..authlib import authlib
 from ..config import MINECRAFT_FOLDER, SKINS_CACHE_FOLDER, LAUNCHER_DIRECTORY, JVM_ARGS, LAUNCHER_NAME, LAUNCHER_VERSION
-
+from ..settings import settings
 
 class MainPage(ft.View):
     def __init__(self, page: ft.Page):
@@ -204,7 +204,8 @@ class MainPage(ft.View):
 
     def _check_game(self, event: ft.TapEvent):
         print("Checking game...")
-        latest_release = mcl.utils.get_latest_version()["release"]
+        # latest_release = mcl.utils.get_latest_version()["release"]
+        latest_release = "1.21.4"
         latest_forge = mcl.forge.find_forge_version(latest_release)
         installed_versions = mcl.utils.get_installed_versions(
             MINECRAFT_FOLDER
@@ -236,10 +237,15 @@ class MainPage(ft.View):
                 "token": account.account["access_token"],
                 "launcherName": LAUNCHER_NAME,
                 "launcherVersion": LAUNCHER_VERSION,
+                "customResolution": True,
+                "resolutionWidth": str(settings.window_width),
+                "resolutionHeight": str(settings.window_height),
             }
         options["jvmArguments"] = [
                 f"-javaagent:{MINECRAFT_FOLDER}/authlib-injector.jar=https://auth.cubedvij.pp.ua/authlib-injector",
-                *JVM_ARGS,
+                f"-Xmx{settings.max_use_ram}M",
+                f"-Xms{settings.min_use_ram}M",
+                *settings.java_args,
         ]
         minecraft_command = mcl.command.get_minecraft_command(
                 version, MINECRAFT_FOLDER, options
@@ -250,6 +256,10 @@ class MainPage(ft.View):
         self.page.run_task(self._check_minecraft)
         self._play_button_stop()
         self._check_game_button_disable()
+        if settings.minimize_launcher:
+            self.page.window.minimized = True
+        if settings.close_launcher:
+            self.page.window.close()
         self.page.update()
 
     def _install_minecraft(self, version):

@@ -4,7 +4,7 @@ import psutil
 
 from pathlib import Path
 
-WINDOW_SIZE = (900, 550)
+WINDOW_SIZE = (900, 564)
 
 AUTH_URL = "https://auth.cubedvij.pp.ua"
 
