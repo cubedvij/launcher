@@ -53,9 +53,9 @@ class LoginPage(ft.View):
         password = self.password.value.strip()
         if username and password:
             response = account.login(username, password)
-            if response.get("error"):
+            if response.status_code != 200:
                 status_bar = ft.SnackBar(
-                    ft.Text(response["error"]), open=True, bgcolor=ft.colors.RED_400
+                    ft.Text(response["message"]), open=True, bgcolor=ft.colors.RED_400
                 )
             else:
                 status_bar = ft.SnackBar(

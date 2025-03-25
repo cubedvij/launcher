@@ -64,7 +64,9 @@ class Auth:
             },
         )
         if response.cookies.get("browserToken"):
-            self.__login(username, password)
+            # resp = self.__login(username, password)
+            # if resp.status_code != 200:
+            #     return resp.json()
             return True
             # return response.text.split('<p class="error-message">')[1].split("</p>")[0]
         elif response.cookies.get("errorMessage"):
@@ -86,18 +88,19 @@ class Auth:
                 "requestUser": True,
             },
         )
-        if response.status_code == 401:
-            return {"error": "Неправильне ім'я користувача або пароль"}
         if response.status_code != 200:
-            return {"error": "Помилка сервера або відсутній інтернет"}
-        response = response.json()
+            return response
+        response_json = response.json()
 
-        self.account["access_token"] = response["accessToken"]
-        self.account["client_token"] = response["clientToken"]
-        self.account["username"] = response["selectedProfile"]["name"]
+        self.account["access_token"] = response_json["accessToken"]
+        self.account["client_token"] = response_json["clientToken"]
+        self.account["username"] = response_json["selectedProfile"]["name"]
+        
         self.save_account()
 
-        self.__login(username, password)
+        resp = self.__login(username, password)
+        if resp.status_code != 200:
+            return resp
         return response
 
     # /refresh
@@ -162,6 +165,8 @@ class Auth:
         self.invalidate()
         self.account = {}
         self.user = {}
+        self.skin_hash = None
+        self.update_skin = None
         self.save_account()
         self.save_user()
         # remove skin file
@@ -180,11 +185,14 @@ class Auth:
                 "password": password,
             },
         )
-
+        if response.status_code != 200:
+            return response
         self.user.update(response.json())
         self.update_skin = True
         self.save_user()
+        self.api_session.headers["Authorization"] = f"Bearer {self.user['token']}"
         self.calculate_skin_hash()
+        return response
 
     def get_user(self):
         response = self.api_session.get(f"{self.base_url}/drasl/api/v2/user")
