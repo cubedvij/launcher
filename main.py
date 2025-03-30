@@ -1,14 +1,38 @@
+import logging
+from math import e
+
 import flet as ft
 
 from src.auth import account
 from src.routes import LoginPage, MainPage, RegisterPage, ProfilePage, SettingsPage
-from src.config import WINDOW_SIZE, LAUNCHER_NAME, LAUNCHER_VERSION
+from src.config import WINDOW_SIZE, LAUNCHER_NAME, LAUNCHER_VERSION, _COMPILED, APPDATA_FOLDER
 
 # Fix SSL on Linux
 import certifi
 import os
 
 os.environ["SSL_CERT_FILE"] = certifi.where()
+
+if _COMPILED:
+    logging.basicConfig(
+        filename=APPDATA_FOLDER / "launcher.log",
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+    )
+    logging.getLogger("flet_core").setLevel(logging.INFO)
+    logging.getLogger().addHandler(logging.StreamHandler())
+    logging.getLogger().setLevel(logging.INFO)
+    logging.debug(f"Launcher version: {LAUNCHER_VERSION}")
+else:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+    )
+    logging.getLogger("flet_core").setLevel(logging.INFO)
+    logging.getLogger().addHandler(logging.StreamHandler())
+    logging.getLogger().setLevel(logging.INFO)
+    logging.debug(f"Launcher version: {LAUNCHER_VERSION}")
+
 
 def main(page: ft.Page):
     page.title = f"{LAUNCHER_NAME} v{LAUNCHER_VERSION}"

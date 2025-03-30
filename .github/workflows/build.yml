@@ -31,6 +31,7 @@ jobs:
           include-package-data: |
            minecraft_launcher_lib:version.txt
            flet
+           assets
           output-file: cube-launcher
           script-name: main.py
           mode: app
@@ -38,7 +39,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ runner.os }} Build
+          name: ${{ runner.os }}_build
           path: |
             build/cube-launcher.exe
             build/cube-launcher

@@ -1,16 +1,21 @@
 import os
 import platform
 import psutil
+import nuitka
 
 from pathlib import Path
+
+_COMPILED = getattr(nuitka, '__compiled__', False)
 
 WINDOW_SIZE = (900, 564)
 
 AUTH_URL = "https://auth.cubedvij.pp.ua"
 SERVER_IP = "play.cubedvij.pp.ua"
+CHANGELOG_URL = "https://raw.githubusercontent.com/cubedvij/modpack/refs/heads/main/README.md"
+MODPACK_REPO_URL = "https://github.com/cubedvij/modpack"
 
 LAUNCHER_DIRECTORY = Path(__file__).parent
-LAUNCHER_VERSION = "0.1.0"
+LAUNCHER_VERSION = "0.2.0"
 LAUNCHER_NAME = "Кубічний Лаунчер"
 
 if platform.system() == "Windows":

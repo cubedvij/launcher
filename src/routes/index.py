@@ -1,11 +1,12 @@
 import os
 import asyncio
 import subprocess
-import time
-import flet as ft
+
 import httpx
-from mcstatus import JavaServer
+import flet as ft
 import minecraft_launcher_lib as mcl
+
+from mcstatus import JavaServer
 
 from ..auth import account
 from ..modpack import modpack
@@ -15,7 +16,7 @@ from ..config import (
     SERVER_IP,
     SKINS_CACHE_FOLDER,
     LAUNCHER_DIRECTORY,
-    JVM_ARGS,
+    CHANGELOG_URL,
     LAUNCHER_NAME,
     LAUNCHER_VERSION,
 )
@@ -34,7 +35,7 @@ class MainPage(ft.View):
             "setMax": lambda max: self._set_max(max),
         }
         self.build_ui()
-        self.page.run_thread(self._server_status_update)
+        self.page.run_task(self._server_status_update)
 
     @staticmethod
     async def update_user_info(event: ft.RouteChangeEvent):
@@ -56,11 +57,12 @@ class MainPage(ft.View):
 
     def build_ui(self):
         changelog_text = httpx.get(
-            "https://raw.githubusercontent.com/cubedvij/modpack/refs/heads/main/README.md"
+            CHANGELOG_URL,
         ).text
         self._changelog = ft.Markdown(
-            changelog_text,
+            value=changelog_text,
             selectable=True,
+            fit_content=False,
             extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
         )
         self._appbar = ft.AppBar(
@@ -105,6 +107,23 @@ class MainPage(ft.View):
                                     "https://send.monobank.ua/jar/48bPzh2JmA"
                                 ),
                                 tooltip="Підтримати проект",
+                            ),
+                            # github
+                            ft.IconButton(
+                                padding=ft.Padding(12, 12, 12, 12),
+                                style=ft.ButtonStyle(
+                                    shape=ft.RoundedRectangleBorder(radius=8),
+                                ),
+                                content=ft.Image(
+                                    src="github-mark.svg",
+                                    width=20,
+                                    height=20,
+                                    color=ft.Colors.SECONDARY,
+                                ),
+                                on_click=lambda e: self._open_link(
+                                    "https://github.com/cubedvij"
+                                ),
+                                tooltip="GitHub",
                             ),
                             ft.IconButton(
                                 padding=ft.Padding(12, 12, 12, 12),
@@ -185,7 +204,6 @@ class MainPage(ft.View):
         self._progress_text = ft.Text(
             "",
             size=20,
-            color=ft.Colors.WHITE,
             visible=False,
         )
         self._progress_bar = ft.ProgressBar(value=0, visible=False)
@@ -194,12 +212,10 @@ class MainPage(ft.View):
                 ft.Text(
                     f"Встановлена версія: {modpack.installed_version}",
                     size=12,
-                    color=ft.Colors.WHITE,
                 ),
                 ft.Text(
                     f"Остання версія: {modpack.remote_version}",
                     size=12,
-                    color=ft.Colors.WHITE,
                 ),
             ],
             spacing=4,
@@ -218,7 +234,6 @@ class MainPage(ft.View):
                         ft.Text(
                             "Сервер офлайн",
                             size=12,
-                            color=ft.Colors.WHITE,
                         ),
                     ],
                     spacing=4,
@@ -232,12 +247,10 @@ class MainPage(ft.View):
                         ft.Text(
                             "Онлайн гравців:",
                             size=12,
-                            color=ft.Colors.WHITE,
                         ),
                         ft.Text(
                             "",
                             size=12,
-                            color=ft.Colors.WHITE,
                         ),
                     ],
                     spacing=4,
@@ -247,7 +260,7 @@ class MainPage(ft.View):
             alignment=ft.MainAxisAlignment.END,
             horizontal_alignment=ft.CrossAxisAlignment.START,
         )
-        self._update_server_status()
+        self.page.run_task(self._update_server_status)
         self.bottom_appbar = ft.BottomAppBar(
             content=ft.Row(
                 controls=[
@@ -267,15 +280,12 @@ class MainPage(ft.View):
         )
         self.pagelet = ft.Pagelet(
             expand=True,
-            expand_loose=True,
             appbar=self._appbar,
             # bottom_app_bar=self._bottom_bar,
             content=ft.Container(
-                expand=True,
                 padding=ft.Padding(0, 8, 0, 8),
                 content=ft.Column(
                     controls=[self._changelog],
-                    alignment=ft.MainAxisAlignment.CENTER,
                     scroll=ft.ScrollMode.AUTO,
                 ),
             ),
@@ -283,25 +293,24 @@ class MainPage(ft.View):
         self.controls.append(self.pagelet)
         self.page.update()
 
-    def _server_status_update(self):
+    async def _server_status_update(self):
         while True:
-            self._update_server_status()
-            time.sleep(5)
+            await self._update_server_status()
+            await asyncio.sleep(10)
 
-    def _update_server_status(self):
+    async def _update_server_status(self):
         self._minecraft_server = JavaServer(
             host=SERVER_IP,
             port=25565,
         )
         try:
-            server_status = self._minecraft_server.status()
-            online_status = server_status
+            server_status = await self._minecraft_server.async_status()
             players_online = server_status.players.online
         except ConnectionRefusedError:
-            online_status = False
+            server_status = False
             players_online = 0
 
-        if online_status:
+        if server_status:
             self._server_status.controls[0].controls[0].color = ft.Colors.GREEN
             self._server_status.controls[0].controls[1].value = "Сервер онлайн"
             self._server_status.controls[1].controls[2].value = str(players_online)
@@ -310,7 +319,8 @@ class MainPage(ft.View):
             self._server_status.controls[0].controls[1].value = "Сервер офлайн"
             self._server_status.controls[1].controls[2].value = "0"
 
-        self.page.update()
+        if self.page is not None:
+            self.page.update()
 
     def _check_game(self, event: ft.TapEvent):
         print("Checking game...")

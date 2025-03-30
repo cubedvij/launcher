@@ -1,7 +1,7 @@
+import re
 import os
 import json
 import httpx
-import re
 import hashlib
 
 from .minepi import Player

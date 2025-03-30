@@ -1,9 +1,10 @@
-from operator import call
 import os
 import json
 import zipfile
-import httpx
 import hashlib
+
+import httpx
+
 from pathlib import Path
 from typing import Optional, Dict, Tuple, Callable
 from minecraft_launcher_lib.mrpack import (
@@ -20,12 +21,12 @@ from minecraft_launcher_lib.mrpack import (
     _filter_mrpack_files,   
     VersionNotFound,
 )
-from .config import APPDATA_FOLDER, MINECRAFT_FOLDER
+from .config import APPDATA_FOLDER, MINECRAFT_FOLDER, MODPACK_REPO_URL
 
 
 class Modpack:
     def __init__(self):
-        self._repo_url = "https://github.com/cubedvij/modpack"
+        self._repo_url = MODPACK_REPO_URL
         self._index_url = f"{self._repo_url}/raw/refs/heads/main/modrinth.index.json"
         self._zip_url = f"{self._repo_url}/archive/refs/heads/main.zip"
         self.name = "cubedvij"
