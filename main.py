@@ -65,4 +65,4 @@ def main(page: ft.Page):
         page.go("/login")
         
 if __name__ == "__main__":
-    ft.app(main)
+    ft.app(main, assets_dir=os.path.join(os.path.dirname(__file__), "assets"))
