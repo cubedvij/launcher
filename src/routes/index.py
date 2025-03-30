@@ -3,12 +3,22 @@ import asyncio
 import subprocess
 
 import flet as ft
+import httpx
 import minecraft_launcher_lib as mcl
 
 from ..auth import account
+from ..modpack import modpack
 from ..authlib import authlib
-from ..config import MINECRAFT_FOLDER, SKINS_CACHE_FOLDER, LAUNCHER_DIRECTORY, JVM_ARGS, LAUNCHER_NAME, LAUNCHER_VERSION
+from ..config import (
+    MINECRAFT_FOLDER,
+    SKINS_CACHE_FOLDER,
+    LAUNCHER_DIRECTORY,
+    JVM_ARGS,
+    LAUNCHER_NAME,
+    LAUNCHER_VERSION,
+)
 from ..settings import settings
+
 
 class MainPage(ft.View):
     def __init__(self, page: ft.Page):
@@ -42,10 +52,11 @@ class MainPage(ft.View):
         self.page.update()
 
     def build_ui(self):
+        changelog_text = httpx.get(
+            "https://raw.githubusercontent.com/cubedvij/modpack/refs/heads/main/README.md"
+        ).text
         self._changelog = ft.Markdown(
-            """
-# **тут буде чейнджлог**
-            """,
+            changelog_text,
             selectable=True,
             extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
         )
@@ -174,14 +185,39 @@ class MainPage(ft.View):
             color=ft.Colors.WHITE,
             visible=False,
         )
-        self._progress_bar = ft.ProgressBar(expand=True, value=0, visible=False)
-
+        self._progress_bar = ft.ProgressBar(value=0, visible=False)
+        self._version_column = ft.Column(
+            controls=[
+                ft.Text(
+                    f"Встановлена версія: {modpack.installed_version}",
+                    size=12,
+                    color=ft.Colors.WHITE,
+                ),
+                ft.Text(
+                    f"Остання версія: {modpack.remote_version}",
+                    size=12,
+                    color=ft.Colors.WHITE,
+                ),
+            ],
+            spacing=4,
+            alignment=ft.MainAxisAlignment.END,
+            horizontal_alignment=ft.CrossAxisAlignment.END,
+        )
         self.bottom_appbar = ft.BottomAppBar(
-            content=ft.Column(
+            content=ft.Row(
                 controls=[
-                    self._progress_text,
-                    self._progress_bar,
-                ]
+                    ft.Column(
+                        controls=[
+                            self._progress_text,
+                            self._progress_bar,
+                        ],
+                        expand=True,
+                    ),
+                    self._version_column,
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                spacing=8,
+                expand=True,
             ),
         )
         self.pagelet = ft.Pagelet(
@@ -204,52 +240,51 @@ class MainPage(ft.View):
 
     def _check_game(self, event: ft.TapEvent):
         print("Checking game...")
-        # latest_release = mcl.utils.get_latest_version()["release"]
-        latest_release = "1.21.4"
-        latest_forge = mcl.forge.find_forge_version(latest_release)
-        installed_versions = mcl.utils.get_installed_versions(
-            MINECRAFT_FOLDER
-        )  # {'id': '1.21.4', 'type': 'release', 'releaseTime': datetime.datetime(2024, 12, 3, 10, 12, 57, tzinfo=datetime.timezone.utc), 'complianceLevel': 1}, {'id': '1.21.4-forge-54.1.3', 'type': 'release', 'releaseTime': datetime.datetime(2025, 3, 17, 0, 9, 59, tzinfo=datetime.timezone.utc), 'complianceLevel': 0}]
-        latest_forge = latest_forge.replace("-", "-forge-", 1)
-        print(f"Latest release: {latest_release}")
-        print(f"Latest forge: {latest_forge}")
-
+        # check if game is installed
+        installed_versions = mcl.utils.get_installed_versions(MINECRAFT_FOLDER)
         installed_versions_list = []
         for version in installed_versions:
             installed_versions_list.append(version["id"])
         print(f"Installed versions list: {installed_versions_list}")
-        # check in latest release is installed
+
+        # check if game is installed
         if not all(
             (
-                latest_release in installed_versions_list,
-                latest_forge in installed_versions_list,
+                modpack.minecraft_version in installed_versions_list,
+                modpack.modloader_full in installed_versions_list,
             )
         ):
-            self._install_minecraft(latest_release)
+            self._install_minecraft()
+        # check if modpack version is latest
+        elif not modpack.is_up_to_date():
+            self._update_modpack()
+        # check if modpack installed correctly
+        elif not modpack.verify_installation():
+            self._update_modpack()
         else:
-            self._launch_minecraft(latest_forge)
+            self._launch_minecraft(modpack.modloader_full)
 
     def _launch_minecraft(self, version):
         print("Game is already downloaded.")
         options = {
-                "username": account.user["user"]["players"][0]["name"],
-                "uuid": account.user["user"]["players"][0]["uuid"],
-                "token": account.account["access_token"],
-                "launcherName": LAUNCHER_NAME,
-                "launcherVersion": LAUNCHER_VERSION,
-                "customResolution": True,
-                "resolutionWidth": str(settings.window_width),
-                "resolutionHeight": str(settings.window_height),
-            }
+            "username": account.user["user"]["players"][0]["name"],
+            "uuid": account.user["user"]["players"][0]["uuid"],
+            "token": account.account["access_token"],
+            "launcherName": LAUNCHER_NAME,
+            "launcherVersion": LAUNCHER_VERSION,
+            "customResolution": True,
+            "resolutionWidth": str(settings.window_width),
+            "resolutionHeight": str(settings.window_height),
+        }
         options["jvmArguments"] = [
-                f"-javaagent:{MINECRAFT_FOLDER}/authlib-injector.jar=https://auth.cubedvij.pp.ua/authlib-injector",
-                f"-Xmx{settings.max_use_ram}M",
-                f"-Xms{settings.min_use_ram}M",
-                *settings.java_args,
+            f"-javaagent:{MINECRAFT_FOLDER}/authlib-injector.jar=https://auth.cubedvij.pp.ua/authlib-injector",
+            f"-Xmx{settings.max_use_ram}M",
+            f"-Xms{settings.min_use_ram}M",
+            *settings.java_args,
         ]
         minecraft_command = mcl.command.get_minecraft_command(
-                version, MINECRAFT_FOLDER, options
-            )
+            version, MINECRAFT_FOLDER, options
+        )
         # change working directory to .minecraft
         os.chdir(MINECRAFT_FOLDER)
         self._minecraft_process = subprocess.Popen(minecraft_command)
@@ -262,7 +297,7 @@ class MainPage(ft.View):
             self.page.window.close()
         self.page.update()
 
-    def _install_minecraft(self, version):
+    def _install_minecraft(self):
         print("Downloading game...")
 
         self._progress_bar.visible = True
@@ -272,37 +307,64 @@ class MainPage(ft.View):
         self._check_game_button_disable()
         self.page.update()
 
-        mcl.install.install_minecraft_version(
-            version, MINECRAFT_FOLDER, self._download_callback
-        )
-
-        # install forge
-        self._set_progress_text("Встановлення Forge...")
-        forge_version = mcl.forge.find_forge_version(version)
-        if forge_version is not None:
-            mcl.forge.install_forge_version(
-                forge_version, MINECRAFT_FOLDER, self._download_callback
-            )
-            self._set_progress_text("Forge встановлено")
-        else:
-            self._set_progress_text("Forge не знайдено")
-
         self._set_progress_text("Встановлення authlib-injector...")
-
         authlib.download_latest_release(
             f"{MINECRAFT_FOLDER}/authlib-injector.jar",
             self._set_progress,
             self._set_max,
         )
-
         self._set_progress_text("authlib-injector встановлено")
+
+        # install modpack
+        self._set_progress_text("Встановлення модпаку...")
+        modpack.install(
+            MINECRAFT_FOLDER,
+            self._download_callback,
+        )
 
         self._progress_bar.visible = False
         self._progress_text.visible = False
 
         self._check_game_button_enable()
         self._play_button_enable()
+        # update version column
+        self._version_column.controls[0].value = (
+            f"Встановлена версія: {modpack.installed_version}"
+        )
+        self._version_column.controls[1].value = (
+            f"Остання версія: {modpack.remote_version}"
+        )
 
+        if self.page is not None:
+            self.page.update()
+
+    def _update_modpack(self):
+        print("Updating modpack...")
+        self._progress_bar.visible = True
+        self._progress_text.visible = True
+
+        self._play_button_disable()
+        self._check_game_button_disable()
+        self.page.update()
+
+        self._set_progress_text("Оновлення модпаку...")
+        modpack.update(
+            self._download_callback,
+        )
+
+        self._progress_bar.visible = False
+        self._progress_text.visible = False
+
+        self._check_game_button_enable()
+        self._play_button_enable()
+        # update version column
+        self._version_column.controls[0].value = (
+            f"Встановлена версія: {modpack.installed_version}"
+        )
+        self._version_column.controls[1].value = (
+            f"Остання версія: {modpack.remote_version}"
+        )
+        
         if self.page is not None:
             self.page.update()
 
@@ -385,9 +447,10 @@ class MainPage(ft.View):
             if not self._check_minecraft_running():
                 self._play_button_enable()
                 self._check_game_button_enable()
+                self.page.window.minimized = False
                 self.page.update()
                 break
-            await asyncio.sleep(3)
+            await asyncio.sleep(2)
 
     def _set_max(self, max: int):
         self._max_progress = max
