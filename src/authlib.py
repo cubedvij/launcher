@@ -1,8 +1,6 @@
 import httpx
 import hashlib
 
-import src.auth as auth
-
 # GITHUB = https://github.com/yushijinhun/authlib-injector/releases
 
 class Authlib:

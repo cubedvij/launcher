@@ -1,5 +1,4 @@
 import base64
-from turtle import shape
 import flet as ft
 
 from ..auth import account

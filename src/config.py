@@ -7,6 +7,7 @@ from pathlib import Path
 WINDOW_SIZE = (900, 564)
 
 AUTH_URL = "https://auth.cubedvij.pp.ua"
+SERVER_IP = "play.cubedvij.pp.ua"
 
 LAUNCHER_DIRECTORY = Path(__file__).parent
 LAUNCHER_VERSION = "0.1.0"

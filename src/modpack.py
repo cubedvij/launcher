@@ -1,10 +1,11 @@
+from operator import call
 import os
 import json
 import zipfile
 import httpx
 import hashlib
 from pathlib import Path
-from typing import Optional, Dict, Tuple, Callable, override
+from typing import Optional, Dict, Tuple, Callable
 from minecraft_launcher_lib.mrpack import (
     install_minecraft_version,
     install_forge_version,
@@ -348,6 +349,9 @@ class Modpack:
         )
         # Verify the installation
         if not self.verify_installation():
+            callback.get("setStatus", empty)(
+                "Модпак не вдалося оновити. Спробуйте ще раз."
+            )
             raise RuntimeError("Modpack installation verification failed")
 
         # Update the installed version

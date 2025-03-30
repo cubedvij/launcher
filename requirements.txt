@@ -43,3 +43,4 @@ urllib3==2.3.0
 watchdog==4.0.2
 zstandard==0.23.0
 psutil==7.0.0
+mcstatus==11.1.1

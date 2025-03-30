@@ -1,9 +1,10 @@
 import os
 import asyncio
 import subprocess
-
+import time
 import flet as ft
 import httpx
+from mcstatus import JavaServer
 import minecraft_launcher_lib as mcl
 
 from ..auth import account
@@ -11,6 +12,7 @@ from ..modpack import modpack
 from ..authlib import authlib
 from ..config import (
     MINECRAFT_FOLDER,
+    SERVER_IP,
     SKINS_CACHE_FOLDER,
     LAUNCHER_DIRECTORY,
     JVM_ARGS,
@@ -32,6 +34,7 @@ class MainPage(ft.View):
             "setMax": lambda max: self._set_max(max),
         }
         self.build_ui()
+        self.page.run_thread(self._server_status_update)
 
     @staticmethod
     async def update_user_info(event: ft.RouteChangeEvent):
@@ -203,6 +206,48 @@ class MainPage(ft.View):
             alignment=ft.MainAxisAlignment.END,
             horizontal_alignment=ft.CrossAxisAlignment.END,
         )
+        self._server_status = ft.Column(
+            controls=[
+                ft.Row(
+                    controls=[
+                        ft.Icon(
+                            name=ft.Icons.CIRCLE,
+                            color=ft.Colors.ORANGE,
+                            size=16,
+                        ),
+                        ft.Text(
+                            "Сервер офлайн",
+                            size=12,
+                            color=ft.Colors.WHITE,
+                        ),
+                    ],
+                    spacing=4,
+                ),
+                ft.Row(
+                    controls=[
+                        ft.Icon(
+                            name=ft.Icons.PERSON,
+                            size=16,
+                        ),
+                        ft.Text(
+                            "Онлайн гравців:",
+                            size=12,
+                            color=ft.Colors.WHITE,
+                        ),
+                        ft.Text(
+                            "",
+                            size=12,
+                            color=ft.Colors.WHITE,
+                        ),
+                    ],
+                    spacing=4,
+                ),
+            ],
+            spacing=4,
+            alignment=ft.MainAxisAlignment.END,
+            horizontal_alignment=ft.CrossAxisAlignment.START,
+        )
+        self._update_server_status()
         self.bottom_appbar = ft.BottomAppBar(
             content=ft.Row(
                 controls=[
@@ -213,9 +258,9 @@ class MainPage(ft.View):
                         ],
                         expand=True,
                     ),
+                    self._server_status,
                     self._version_column,
                 ],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 spacing=8,
                 expand=True,
             ),
@@ -236,6 +281,35 @@ class MainPage(ft.View):
             ),
         )
         self.controls.append(self.pagelet)
+        self.page.update()
+
+    def _server_status_update(self):
+        while True:
+            self._update_server_status()
+            time.sleep(5)
+
+    def _update_server_status(self):
+        self._minecraft_server = JavaServer(
+            host=SERVER_IP,
+            port=25565,
+        )
+        try:
+            server_status = self._minecraft_server.status()
+            online_status = server_status
+            players_online = server_status.players.online
+        except ConnectionRefusedError:
+            online_status = False
+            players_online = 0
+
+        if online_status:
+            self._server_status.controls[0].controls[0].color = ft.Colors.GREEN
+            self._server_status.controls[0].controls[1].value = "Сервер онлайн"
+            self._server_status.controls[1].controls[2].value = str(players_online)
+        else:
+            self._server_status.controls[0].controls[0].color = ft.Colors.RED
+            self._server_status.controls[0].controls[1].value = "Сервер офлайн"
+            self._server_status.controls[1].controls[2].value = "0"
+
         self.page.update()
 
     def _check_game(self, event: ft.TapEvent):
@@ -364,7 +438,7 @@ class MainPage(ft.View):
         self._version_column.controls[1].value = (
             f"Остання версія: {modpack.remote_version}"
         )
-        
+
         if self.page is not None:
             self.page.update()
 
