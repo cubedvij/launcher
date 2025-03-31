@@ -38,8 +38,8 @@ class Auth:
         except FileNotFoundError:
             pass
         # set bearer token
-        if self.user.get("token"):
-            self.api_session.headers["Authorization"] = f"Bearer {self.user['token']}"
+        if self.user.get("apiToken"):
+            self.api_session.headers["Authorization"] = f"Bearer {self.user["apiToken"]}"
 
         self.calculate_skin_hash()
 
@@ -190,7 +190,7 @@ class Auth:
         self.user.update(response.json())
         self.update_skin = True
         self.save_user()
-        self.api_session.headers["Authorization"] = f"Bearer {self.user['token']}"
+        self.api_session.headers["Authorization"] = f"Bearer {self.user["apiToken"]}"
         self.calculate_skin_hash()
         return response
 
