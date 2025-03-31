@@ -58,19 +58,19 @@ class Auth:
         response = self.api_session.post(
             f"{self.base_url}/web/register",
             params={
-                "username": username,
+                "playerName": username,
                 "password": password,
                 "returnUrl": "/web/registration",
             },
         )
-        if response.cookies.get("browserToken"):
+        if response.cookies.get("__Host-browserToken"):
             # resp = self.__login(username, password)
             # if resp.status_code != 200:
             #     return resp.json()
             return True
             # return response.text.split('<p class="error-message">')[1].split("</p>")[0]
-        elif response.cookies.get("errorMessage"):
-            return response.cookies.get("errorMessage").replace("+", " ")
+        elif response.cookies.get("__Host-errorMessage"):
+            return response.cookies.get("__Host-errorMessage").replace("+", " ")
         else:
             return "Помилка сервера або відсутній інтернет"
 
