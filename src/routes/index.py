@@ -260,7 +260,7 @@ class MainPage(ft.View):
             alignment=ft.MainAxisAlignment.END,
             horizontal_alignment=ft.CrossAxisAlignment.START,
         )
-        self.page.run_task(self._update_server_status)
+        self.page.run_task(self._server_status_update)
         self.bottom_appbar = ft.BottomAppBar(
             content=ft.Row(
                 controls=[
@@ -295,9 +295,13 @@ class MainPage(ft.View):
 
     async def _server_status_update(self):
         while True:
-            await self._update_server_status()
-            await asyncio.sleep(10)
-
+            try:
+                await self._update_server_status()
+                await asyncio.sleep(10)
+            except Exception as e:
+                print(f"Error updating server status: {e}")
+                await asyncio.sleep(10)
+                
     async def _update_server_status(self):
         self._minecraft_server = JavaServer(
             host=SERVER_IP,
@@ -306,7 +310,7 @@ class MainPage(ft.View):
         try:
             server_status = await self._minecraft_server.async_status()
             players_online = server_status.players.online
-        except ConnectionRefusedError:
+        except Exception as e:
             server_status = False
             players_online = 0
 
