@@ -457,10 +457,7 @@ class MainPage(ft.View):
             self.page.update()
 
     def _force_install_game(self, event: ft.TapEvent):
-        latest_release = mcl.utils.get_latest_version()["release"]
-        latest_forge = mcl.forge.find_forge_version(latest_release)
-        latest_forge = latest_forge.replace("-", "-forge-", 1)
-        self._install_minecraft(latest_release)
+        self._install_minecraft()
 
     def _stop_game(self, event: ft.TapEvent):
         self._minecraft_process.kill()
