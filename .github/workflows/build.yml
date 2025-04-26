@@ -15,14 +15,19 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Install the latest version of uv
+      - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
-          python-version: 3.13t
-          activate-environment: true
-          enable-cache: true
-          cache-dependency-glob: "**/pyproject.toml"
-      - run: uv pip install --python=3.13t pip
+            enable-cache: true
+            cache-dependency-glob: "uv.lock"
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
 
       - uses: Nuitka/Nuitka-Action@main
         with:
@@ -44,3 +49,6 @@ jobs:
             build/cube-launcher.exe
             build/cube-launcher
           include-hidden-files: true
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci
