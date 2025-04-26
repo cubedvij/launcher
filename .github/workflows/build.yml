@@ -29,7 +29,7 @@ jobs:
           python-version-file: "pyproject.toml"
 
       - name: Install the project
-        run: uv sync --locked --all-extras --dev
+        run: uv sync --all-extras --dev
 
       - uses: Nuitka/Nuitka-Action@main
         with:
