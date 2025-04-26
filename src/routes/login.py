@@ -55,7 +55,7 @@ class LoginPage(ft.View):
             response = account.login(username, password)
             if response.status_code != 200:
                 status_bar = ft.SnackBar(
-                    ft.Text(response["message"]), open=True, bgcolor=ft.colors.RED_400
+                    ft.Text(response.json()["errorMessage"]), open=True, bgcolor=ft.colors.RED_400
                 )
             else:
                 status_bar = ft.SnackBar(

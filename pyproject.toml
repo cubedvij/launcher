@@ -1,0 +1,14 @@
+[project]
+name = "cubedvij-launcher"
+version = "0.3.0"
+description = "Launcher for Minecraft server"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "flet[all]>=0.27.6",
+    "mcstatus>=11.1.1",
+    "minecraft-launcher-lib>=7.1",
+    "nuitka>=2.6.9",
+    "pillow>=11.2.1",
+    "psutil>=7.0.0",
+]
