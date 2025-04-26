@@ -22,7 +22,7 @@ jobs:
         with:
             enable-cache: true
             activate-environment: true
-            
+
       - name: Install the project
         run: uv sync --all-extras --dev
 
@@ -52,6 +52,8 @@ jobs:
           --output-file=cube-launcher \
           --windows-console-mode=disable \
           --script-name=main.py \
+          --assume-yes-for-downloads \
+          --output-dir=build \
           --mode=app
         working-directory: .
 
