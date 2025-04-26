@@ -21,7 +21,7 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
             enable-cache: true
-            cache-dependency-glob: "uv.lock"
+            activate-environment: true
 
       - name: "Set up Python"
         uses: actions/setup-python@v5
@@ -31,17 +31,6 @@ jobs:
       - name: Install the project
         run: uv sync --all-extras --dev
 
-      # - uses: Nuitka/Nuitka-Action@main
-      #   with:
-      #     nuitka-version: main
-      #     include-package-data: |
-      #      minecraft_launcher_lib:version.txt
-      #      flet
-      #      assets
-      #     output-file: cube-launcher
-      #     windows-console-mode: disable
-      #     script-name: main.py
-      #     mode: app
       - name: Install ccache
         if: ${{ runner.os == 'Linux' }}
         shell: bash
