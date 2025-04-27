@@ -26,61 +26,71 @@ jobs:
       - name: Install the project
         run: uv sync --all-extras --dev
 
-      - name: Install ccache
-        if: ${{ runner.os == 'Linux' }}
+      # - name: Install ccache
+      #   if: ${{ runner.os == 'Linux' }}
+      #   shell: bash
+      #   run: |
+      #     sudo apt-get install -y ccache
+
+      # - name: Setup Environment Variables
+      #   shell: bash
+      #   run: |
+      #     echo "PYTHON_VERSION=$(python --version | awk '{print $2}' | cut -d '.' -f 1,2)" >> $GITHUB_ENV
+
+      # - name: Cache Nuitka cache directory
+      #   if: ${{ runner.os == 'Linux' }}
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: /home/runner/work/_actions/Nuitka/Nuitka-Action/main/nuitka/cache
+      #     key: ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-nuitka-${{ github.sha }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-
+      #       ${{ runner.os }}-${{ runner.arch }}-python-
+      #       ${{ runner.os }}-${{ runner.arch }}-
+
+      # - name: Cache Nuitka cache directory
+      #   if: ${{ runner.os == 'Windows' }}
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: D:\a\_actions\Nuitka\Nuitka-Action\main/nuitka/cache
+      #     key: ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-nuitka-${{ github.sha }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-
+      #       ${{ runner.os }}-${{ runner.arch }}-python-
+      #       ${{ runner.os }}-${{ runner.arch }}-
+
+      # - name: Build with Nuitka
+      #   shell: bash
+      #   run: |
+      #     set -e
+      #     python -m nuitka --include-package-data=minecraft_launcher_lib:version.txt \
+      #     --include-package-data=flet \
+      #     --include-package-data=assets \
+      #     --output-file=cube-launcher \
+      #     --windows-console-mode=disable \
+      #     --script-name=main.py \
+      #     --assume-yes-for-downloads \
+      #     --output-dir=build \
+      #     --mode=app
+      #   working-directory: .
+
+      - name: Pack Flet app
         shell: bash
         run: |
-          sudo apt-get install -y ccache
-
-      - name: Setup Environment Variables
-        shell: bash
-        run: |
-          echo "PYTHON_VERSION=$(python --version | awk '{print $2}' | cut -d '.' -f 1,2)" >> $GITHUB_ENV
-
-      - name: Cache Nuitka cache directory
-        if: ${{ runner.os == 'Linux' }}
-        uses: actions/cache@v4
-        with:
-          path: /home/runner/work/_actions/Nuitka/Nuitka-Action/main/nuitka/cache
-          key: ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-nuitka-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-
-            ${{ runner.os }}-${{ runner.arch }}-python-
-            ${{ runner.os }}-${{ runner.arch }}-
-
-      - name: Cache Nuitka cache directory
-        if: ${{ runner.os == 'Windows' }}
-        uses: actions/cache@v4
-        with:
-          path: D:\a\_actions\Nuitka\Nuitka-Action\main/nuitka/cache
-          key: ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-nuitka-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-
-            ${{ runner.os }}-${{ runner.arch }}-python-
-            ${{ runner.os }}-${{ runner.arch }}-
-
-      - name: Build with Nuitka
-        shell: bash
-        run: |
-          set -e
-          python -m nuitka --include-package-data=minecraft_launcher_lib:version.txt \
-          --include-package-data=flet \
-          --include-package-data=assets \
-          --output-file=cube-launcher \
-          --windows-console-mode=disable \
-          --script-name=main.py \
-          --assume-yes-for-downloads \
-          --output-dir=build \
-          --mode=app
+          flet pack \
+            --name cube-launcher \
+            --yes \
+            --add-data=assets:assets \
+            main.py 
         working-directory: .
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ runner.os }}_build
+          name: ${{ runner.os }}
           path: |
-            build/cube-launcher.exe
-            build/cube-launcher
+            dist/cube-launcher.exe
+            dist/cube-launcher
           include-hidden-files: true
 
       - name: Minimize uv cache
