@@ -15,11 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Setup Environment Variables
-        if: ${{ !inputs.disable-cache }}
-        shell: bash
-        run: |
-          echo "NUITKA_CACHE_DIR=${{ github.action_path }}/nuitka/cache" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -35,6 +31,12 @@ jobs:
         shell: bash
         run: |
           sudo apt-get install -y ccache
+
+      - name: Setup Environment Variables
+        if: ${{ !inputs.disable-cache }}
+        shell: bash
+        run: |
+          echo "NUITKA_CACHE_DIR=${{ github.action_path }}/nuitka/cache" >> $GITHUB_ENV
 
       - name: Cache Nuitka cache directory
         if: ${{ !inputs.disable-cache }}
