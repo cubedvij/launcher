@@ -32,6 +32,11 @@ jobs:
         run: |
           sudo apt-get install -y ccache
 
+      - name: Setup Environment Variables
+        shell: bash
+        run: |
+          echo "PYTHON_VERSION=$(python --version | awk '{print $2}' | cut -d '.' -f 1,2)" >> $GITHUB_ENV
+
       - name: Cache Nuitka cache directory
         uses: actions/cache@v4
         with:
