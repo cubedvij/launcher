@@ -40,7 +40,7 @@ jobs:
       - name: Cache Nuitka cache directory
         uses: actions/cache@v4
         with:
-          path: ${{ github.action_path }}/nuitka/cache
+          path: /home/runner/work/_actions/Nuitka/Nuitka-Action/main/nuitka/cache
           key: ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-nuitka-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-
