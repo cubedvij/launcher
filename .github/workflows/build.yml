@@ -15,8 +15,6 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
-
       - name: Setup Environment Variables
         if: ${{ !inputs.disable-cache }}
         shell: bash
