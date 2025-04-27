@@ -1,11 +1,12 @@
 import os
+import sys
 import platform
 import psutil
-import nuitka
 
 from pathlib import Path
 
-_COMPILED = getattr(nuitka, "__compiled__", False)
+# _COMPILED = getattr(nuitka, "__compiled__", False)
+_COMPILED = getattr(sys, 'frozen', False)
 
 WINDOW_SIZE = (900, 564)
 
