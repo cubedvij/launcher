@@ -38,9 +38,21 @@ jobs:
           echo "PYTHON_VERSION=$(python --version | awk '{print $2}' | cut -d '.' -f 1,2)" >> $GITHUB_ENV
 
       - name: Cache Nuitka cache directory
+        if: ${{ runner.os == 'Linux' }}
         uses: actions/cache@v4
         with:
           path: /home/runner/work/_actions/Nuitka/Nuitka-Action/main/nuitka/cache
+          key: ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-nuitka-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-
+            ${{ runner.os }}-${{ runner.arch }}-python-
+            ${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Cache Nuitka cache directory
+        if: ${{ runner.os == 'Windows' }}
+        uses: actions/cache@v4
+        with:
+          path: D:\a\_actions\Nuitka\Nuitka-Action\main/nuitka/cache
           key: ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-nuitka-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-
