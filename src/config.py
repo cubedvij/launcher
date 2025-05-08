@@ -4,13 +4,14 @@ import platform
 import psutil
 
 from pathlib import Path
+import _version
 
 # _COMPILED = getattr(nuitka, "__compiled__", False)
 _COMPILED = getattr(sys, 'frozen', False)
+
 if _COMPILED:
     # If the script is compiled, use the directory of the executable
-    from _version import version
-    LAUNCHER_VERSION = version
+    LAUNCHER_VERSION = _version.version
 else:
     LAUNCHER_VERSION = "[DEVELOPMENT]"
     
