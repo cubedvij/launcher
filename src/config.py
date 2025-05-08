@@ -12,6 +12,7 @@ WINDOW_SIZE = (900, 564)
 
 AUTH_URL = "https://auth.cubedvij.pp.ua"
 SERVER_IP = "play.cubedvij.pp.ua"
+AUTHINJECTOR_URL = " https://auth.cubedvij.pp.ua/authlib-injector"
 CHANGELOG_URL = (
     "https://raw.githubusercontent.com/cubedvij/modpack/refs/heads/main/README.md"
 )
@@ -48,7 +49,8 @@ if not os.path.exists(USER_FILE):
     with open(USER_FILE, "w") as f:
         f.write("{}")
 
-
+# TODO: -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=adaptive
+# TODO: User Azul Java 17+ for Shenandoah
 JVM_ARGS = [
     "-XX:+UnlockExperimentalVMOptions",
     "-XX:+UseG1GC",

@@ -12,6 +12,7 @@ from ..auth import account
 from ..modpack import modpack
 from ..authlib import authlib
 from ..config import (
+    AUTHINJECTOR_URL,
     MINECRAFT_FOLDER,
     SERVER_IP,
     SKINS_CACHE_FOLDER,
@@ -70,7 +71,7 @@ class MainPage(ft.View):
             leading_width=64,
             bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
             title=ft.Text(
-                f"...",
+                "Привіт, користувачу!",
                 size=20,
                 weight=ft.FontWeight.BOLD,
             ),
@@ -365,7 +366,7 @@ class MainPage(ft.View):
             "resolutionHeight": str(settings.window_height),
         }
         options["jvmArguments"] = [
-            f"-javaagent:{MINECRAFT_FOLDER}/authlib-injector.jar=https://auth.cubedvij.pp.ua/authlib-injector",
+            f"-javaagent:{MINECRAFT_FOLDER}/authlib-injector.jar={AUTHINJECTOR_URL}",
             f"-Xmx{settings.max_use_ram}M",
             f"-Xms{settings.min_use_ram}M",
             *settings.java_args,
