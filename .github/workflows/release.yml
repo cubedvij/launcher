@@ -1,92 +1,54 @@
-name: Release
+name: Launcher Release-Build
 
 on:
   push:
+    # Sequence of patterns matched against refs/tags
     tags:
-      - 'v*.*.*' # Matches version tags like v1.0.0
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+            enable-cache: true
+            activate-environment: true
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install the project
+        run: uv sync --all-extras --dev
 
-    - name: Build executable
-      run: |
-        pyinstaller --onefile main.py
+      - name: Pack Flet app
+        shell: bash
+        run: |
+          flet pack \
+            --name cube-launcher \
+            --yes \
+            --add-data=assets:assets \
+            main.py 
+        working-directory: .
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: release-artifact
-        path: dist/main
+      - name: Create release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Release v${{ steps.get_version.outputs.version }}
+          # body_path: RELEASE.md
+          draft: true
+          prerelease: false
+          files: |
+            dist/*
+        continue-on-error: true
 
-  windows-build:
-    runs-on: windows-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install flet-pack
-        pip install -r requirements.txt
-
-    - name: Build executable with Flet Pack
-      run: |
-        flet pack main.py
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: windows-release-artifact
-        path: dist/main.exe
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Download artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: release-artifact
-
-    - name: Create GitHub Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref_name }}
-        release_name: Release ${{ github.ref_name }}
-        body: |
-          Automated release for version ${{ github.ref_name }}.
-        draft: false
-        prerelease: false
-
-    - name: Upload release asset
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/main
-        asset_name: main
-        asset_content_type: application/octet-stream
+      - name: Minimize uv cache
+        run: uv cache prune --ci
