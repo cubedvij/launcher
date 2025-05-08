@@ -2,9 +2,8 @@ name: Launcher Release-Build
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    tags:
+      - 'v*.*.*' # Matches version tags like v1.0.0
 
 permissions:
   contents: write
