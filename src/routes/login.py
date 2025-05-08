@@ -12,7 +12,7 @@ class LoginPage(ft.View):
 
     def build_ui(self):
         title = ft.Text(
-            "Авторизуватися", size=24, weight=ft.FontWeight.BOLD, color=ft.colors.WHITE
+            "Авторизуватися", size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE
         )
 
         self.username = ft.TextField(
@@ -55,19 +55,19 @@ class LoginPage(ft.View):
             response = account.login(username, password)
             if response.status_code != 200:
                 status_bar = ft.SnackBar(
-                    ft.Text(response.json()["errorMessage"]), open=True, bgcolor=ft.colors.RED_400
+                    ft.Text(response.json()["errorMessage"]), open=True, bgcolor=ft.Colors.RED_400
                 )
             else:
                 status_bar = ft.SnackBar(
                     ft.Text("Успішно авторизовано!"),
                     open=True,
-                    bgcolor=ft.colors.GREEN_400,
+                    bgcolor=ft.Colors.GREEN_400,
                 )
 
                 self.page.go("/")
         else:
             status_bar = ft.SnackBar(
-                ft.Text("Заповніть всі поля!"), open=True, bgcolor=ft.colors.RED_400
+                ft.Text("Заповніть всі поля!"), open=True, bgcolor=ft.Colors.RED_400
             )
         e.control.page.overlay.append(status_bar)
         self.page.update()
