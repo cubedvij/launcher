@@ -1,4 +1,4 @@
-name: Launcher Build
+name: Launcher Dev-Build
 
 on:
   push:

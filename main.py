@@ -1,5 +1,4 @@
 import logging
-from math import e
 
 import flet as ft
 
