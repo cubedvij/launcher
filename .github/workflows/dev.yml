@@ -28,7 +28,7 @@ jobs:
 
       - name: Run script
         run: |
-          python update_version.py
+          python update_version.py --dev
 
       - name: Pack Flet app
         shell: bash

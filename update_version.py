@@ -8,7 +8,7 @@ pyproject = tomllib.load(open("pyproject.toml", "rb"))
 version = pyproject["project"]["version"]
 if sys.argv[1] == "release":
     new_version = version
-else:
+elif sys.argv[1] == "dev":
     new_version = f"{version}-dev-{git_commit.strip()}"
 print("Building with new version number", new_version)
 with open("_version.py", "w") as f:

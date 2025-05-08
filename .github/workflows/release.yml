@@ -34,7 +34,7 @@ jobs:
 
       - name: Run script
         run: |
-          python update_version.py
+          python update_version.py --release
 
       - name: Pack Flet app
         shell: bash
