@@ -1,3 +1,4 @@
+import logging
 import os
 import asyncio
 import subprocess
@@ -11,8 +12,9 @@ from mcstatus import JavaServer
 from ..auth import account
 from ..modpack import modpack
 from ..authlib import authlib
+from ..updater import updater
 from ..config import (
-    AUTHINJECTOR_URL,
+    AUTHLIB_INJECTOR_URL,
     MINECRAFT_FOLDER,
     SERVER_IP,
     SKINS_CACHE_FOLDER,
@@ -37,6 +39,15 @@ class MainPage(ft.View):
         }
         self.build_ui()
         self.page.run_task(self._server_status_update)
+        self.page.run_task(self.check_for_updates)
+
+    async def check_for_updates(self):
+        if await updater.check_for_update():
+            logging.info("Update available.")
+            self.page.open(self._update_banner)
+            self.page.update()
+        else:
+            logging.info("No updates available.")
 
     @staticmethod
     async def update_user_info(event: ft.RouteChangeEvent):
@@ -47,7 +58,9 @@ class MainPage(ft.View):
             size=20,
             weight=ft.FontWeight.BOLD,
         )
-        event.page.views[0].pagelet.appbar.leading.content.src = (
+        event.page.views[
+            0
+        ].pagelet.appbar.leading.content.src = (
             f"{SKINS_CACHE_FOLDER}/{account.skin_hash}-face.png"
         )
         event.page.update()
@@ -56,10 +69,45 @@ class MainPage(ft.View):
         await account.render_skin()
         self.page.update()
 
+    def _install_update(self):
+        self.page.close(self._update_banner)
+        self.update_modal = ft.AlertDialog(
+            modal=True,
+            content=ft.Row(
+                [ft.ProgressRing(), ft.Text("Завантаження оновлення...")],
+                alignment=ft.MainAxisAlignment.CENTER,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+            actions_padding=ft.Padding(0, 0, 0, 0),
+            open=True,
+        )
+        self.page.overlay.append(self.update_modal)
+        self.page.update()
+        updater.download_update()
+        # close the launcher
+        self.page.window.close()
+
     def build_ui(self):
         changelog_text = httpx.get(
             CHANGELOG_URL,
         ).text
+        self._update_banner = ft.Banner(
+            bgcolor=ft.Colors.SECONDARY_CONTAINER,
+            content=ft.Text(
+                "Ваша версія лаунчера застаріла. Оновити до останньої версії?",
+            ),
+            leading=ft.Icon(
+                name=ft.Icons.UPDATE,
+                color=ft.Colors.SECONDARY,
+            ),
+            actions=[
+                ft.TextButton("Так", on_click=lambda e: self._install_update()),
+                ft.TextButton(
+                    "Ні",
+                    on_click=lambda e: self.page.close(self._update_banner),
+                ),
+            ],
+        )
         self._changelog = ft.Markdown(
             value=changelog_text,
             selectable=True,
@@ -302,7 +350,7 @@ class MainPage(ft.View):
             except Exception as e:
                 print(f"Error updating server status: {e}")
                 await asyncio.sleep(10)
-                
+
     async def _update_server_status(self):
         self._minecraft_server = JavaServer(
             host=SERVER_IP,
@@ -366,7 +414,7 @@ class MainPage(ft.View):
             "resolutionHeight": str(settings.window_height),
         }
         options["jvmArguments"] = [
-            f"-javaagent:{MINECRAFT_FOLDER}/authlib-injector.jar={AUTHINJECTOR_URL}",
+            f"-javaagent:{MINECRAFT_FOLDER}/authlib-injector.jar={AUTHLIB_INJECTOR_URL}",
             f"-Xmx{settings.max_use_ram}M",
             f"-Xms{settings.min_use_ram}M",
             *settings.java_args,
@@ -417,12 +465,12 @@ class MainPage(ft.View):
         self._check_game_button_enable()
         self._play_button_enable()
         # update version column
-        self._version_column.controls[0].value = (
-            f"Встановлена версія: {modpack.installed_version}"
-        )
-        self._version_column.controls[1].value = (
-            f"Остання версія: {modpack.remote_version}"
-        )
+        self._version_column.controls[
+            0
+        ].value = f"Встановлена версія: {modpack.installed_version}"
+        self._version_column.controls[
+            1
+        ].value = f"Остання версія: {modpack.remote_version}"
 
         if self.page is not None:
             self.page.update()
@@ -447,12 +495,12 @@ class MainPage(ft.View):
         self._check_game_button_enable()
         self._play_button_enable()
         # update version column
-        self._version_column.controls[0].value = (
-            f"Встановлена версія: {modpack.installed_version}"
-        )
-        self._version_column.controls[1].value = (
-            f"Остання версія: {modpack.remote_version}"
-        )
+        self._version_column.controls[
+            0
+        ].value = f"Встановлена версія: {modpack.installed_version}"
+        self._version_column.controls[
+            1
+        ].value = f"Остання версія: {modpack.remote_version}"
 
         if self.page is not None:
             self.page.update()

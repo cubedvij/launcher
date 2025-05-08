@@ -14,23 +14,24 @@ if _COMPILED:
     LAUNCHER_VERSION = _version.version
 else:
     LAUNCHER_VERSION = "[DEVELOPMENT]"
-    
+
 WINDOW_SIZE = (900, 564)
 
 AUTH_URL = "https://auth.cubedvij.pp.ua"
 SERVER_IP = "play.cubedvij.pp.ua"
-AUTHINJECTOR_URL = " https://auth.cubedvij.pp.ua/authlib-injector"
-CHANGELOG_URL = (
-    "https://raw.githubusercontent.com/cubedvij/modpack/refs/heads/main/README.md"
-)
+AUTHLIB_INJECTOR_URL = " https://auth.cubedvij.pp.ua/authlib-injector"
+CHANGELOG_URL = "https://raw.githubusercontent.com/cubedvij/modpack/refs/heads/main/README.md"
 MODPACK_REPO_URL = "https://github.com/cubedvij/modpack"
+LATEST_LAUNCHER_RELEASE_URL = "https://api.github.com/repos/cubedvij/launcher/releases/latest"
 
 LAUNCHER_DIRECTORY = Path(__file__).parent
 LAUNCHER_NAME = "Кубічний Лаунчер"
 
-if platform.system() == "Windows":
+SYSTEM_OS = platform.system()
+
+if SYSTEM_OS == "Windows":
     APPDATA_FOLDER = Path.home() / "AppData" / "Roaming"
-if platform.system() == "Linux":
+if SYSTEM_OS == "Linux":
     APPDATA_FOLDER = Path.home() / ".config"
 
 APPDATA_FOLDER /= "cubedvij"

@@ -13,8 +13,8 @@ class Settings:
         self.fullscreen = False
         self.minimize_launcher = True
         self.close_launcher = False
-        self.min_use_ram = RAM_SIZE // 4
-        self.max_use_ram = RAM_SIZE // 2
+        self.min_use_ram = max(RAM_SIZE // 2, 6 * 1024)
+        self.max_use_ram = self.min_use_ram
         self.java_args = JVM_ARGS
 
     def load(self):
