@@ -311,7 +311,7 @@ class MainPage(ft.View):
         try:
             server_status = await self._minecraft_server.async_status()
             players_online = server_status.players.online
-        except Exception as e:
+        except Exception:
             server_status = False
             players_online = 0
 

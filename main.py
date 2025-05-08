@@ -34,7 +34,7 @@ else:
 
 
 def main(page: ft.Page):
-    page.title = f"{LAUNCHER_NAME} v{LAUNCHER_VERSION}"
+    page.title = f"{LAUNCHER_NAME} {LAUNCHER_VERSION}"
     page.window.width, page.window.height = WINDOW_SIZE
     # page.window.min_width, page.window.min_height = WINDOW_SIZE
     # page.window.max_width, page.window.max_height = WINDOW_SIZE

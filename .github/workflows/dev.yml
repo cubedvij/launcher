@@ -2,9 +2,9 @@ name: Launcher Dev-Build
 
 on:
   push:
-    branches: [main]
+    branches: [dev]
   pull_request:
-    branches: [main]
+    branches: [dev]
 
 jobs:
   build:
@@ -25,7 +25,7 @@ jobs:
 
       - name: Install the project
         run: uv sync --all-extras --dev
-        
+
       - name: Pack Flet app
         shell: bash
         run: |

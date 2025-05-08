@@ -7,7 +7,13 @@ from pathlib import Path
 
 # _COMPILED = getattr(nuitka, "__compiled__", False)
 _COMPILED = getattr(sys, 'frozen', False)
-
+if _COMPILED:
+    # If the script is compiled, use the directory of the executable
+    from _version import version
+    LAUNCHER_VERSION = version
+else:
+    LAUNCHER_VERSION = "[DEVELOPMENT]"
+    
 WINDOW_SIZE = (900, 564)
 
 AUTH_URL = "https://auth.cubedvij.pp.ua"
@@ -19,7 +25,6 @@ CHANGELOG_URL = (
 MODPACK_REPO_URL = "https://github.com/cubedvij/modpack"
 
 LAUNCHER_DIRECTORY = Path(__file__).parent
-LAUNCHER_VERSION = "0.3.0"
 LAUNCHER_NAME = "Кубічний Лаунчер"
 
 if platform.system() == "Windows":
