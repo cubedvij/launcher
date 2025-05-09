@@ -83,8 +83,7 @@ class MainPage(ft.View):
         )
         self.page.overlay.append(self.update_modal)
         self.page.update()
-        self.page.run_thread(updater.download_update)
-        self.page.window.destroy()
+        updater.download_update()
         self.page.window.close()
         
     def build_ui(self):

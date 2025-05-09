@@ -1,16 +1,12 @@
+import os
 import logging
 
 import flet as ft
 
+from src.updater import updater
 from src.auth import account
 from src.routes import LoginPage, MainPage, RegisterPage, ProfilePage, SettingsPage
 from src.config import WINDOW_SIZE, LAUNCHER_NAME, LAUNCHER_VERSION, _COMPILED, APPDATA_FOLDER, LAUNCHER_DIRECTORY
-
-# Fix SSL on Linux
-import certifi
-import os
-
-os.environ["SSL_CERT_FILE"] = certifi.where()
 
 if _COMPILED:
     logging.basicConfig(
@@ -22,6 +18,8 @@ if _COMPILED:
 
     )
     logging.getLogger("flet_core").setLevel(logging.INFO)
+    # HACK: remove old meipass folder
+    updater.clear_old_meipass()
 else:
     logging.basicConfig(
         level=logging.INFO,

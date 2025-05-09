@@ -1,8 +1,12 @@
 import os
-import tempfile
+import sys
+import shutil
 import httpx
 import logging
 import subprocess
+import multiprocessing
+
+
 
 from .config import (
     LATEST_LAUNCHER_RELEASE_URL,
@@ -10,6 +14,7 @@ from .config import (
     _COMPILED,
     SYSTEM_OS,
     LAUNCHER_DIRECTORY,
+    APPDATA_FOLDER,
 )
 
 
@@ -20,7 +25,11 @@ class Updater:
         self.latest_download_url = ""
         self.latest_version = ""
         self.update_available = False
-        self.temp_dir = tempfile.gettempdir()
+        self.temp_dir = APPDATA_FOLDER / "temp"
+        if not os.path.exists(self.temp_dir):
+            os.makedirs(self.temp_dir)
+        self.latest_download_url = ""
+        self.latest_version = ""
         
     async def check_for_update(self) -> bool:
         if "dev" in self.version or not _COMPILED:
@@ -59,20 +68,29 @@ class Updater:
             with open(os.path.join(self.temp_dir, f"{self.executable}"), "wb") as f:
                 f.write(response.content)
         logging.info("Update downloaded successfully.")
-        self.replace_current_version()
+        # self.replace_current_version()
+        multiprocessing.Process(
+            target=self.replace_current_version,
+            name="replace_current_version",
+        ).start()
 
     def replace_current_version(self):
+        # HACK: copy _MEIPASS to the temp directory
+        MEIPASS_FOLDER_NAME = os.path.basename(sys._MEIPASS)
+        shutil.copytree(
+            sys._MEIPASS,
+            os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME),
+            dirs_exist_ok=True,
+        )
+        logging.info(f"Copied _MEIPASS to temporary directory: {MEIPASS_FOLDER_NAME}")
+        # make new subprocess to replace the current version with wait 5 seconds and open the launcher
         if SYSTEM_OS == "Windows":
             subprocess.Popen(
                 [
                     "cmd",
                     "/c",
-                    f'timeout 1 && move /y {os.path.join(self.temp_dir, f"{self.executable}")} \
-                    {os.path.join(LAUNCHER_DIRECTORY, self.executable)} \
-                    && \
-                    start "" {os.path.join(LAUNCHER_DIRECTORY, self.executable)}',
+                    f'timeout 1 && move /y {os.path.join(self.temp_dir, self.executable)} {os.path.join(LAUNCHER_DIRECTORY, self.executable)} && move /y {os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)} {sys._MEIPASS} && start "" {os.path.join(LAUNCHER_DIRECTORY, self.executable)}',
                 ],
-                start_new_session=True,
             )
         elif SYSTEM_OS == "Linux":
             # make new subprocess to replace the current version with wait 5 seconds and open the launcher    
@@ -84,13 +102,21 @@ class Updater:
                 [
                     "bash",
                     "-c",
-                    f'sleep 1 && mv {os.path.join(self.temp_dir, f"{self.executable}")} \
-                    {os.path.join(LAUNCHER_DIRECTORY, self.executable)} \
-                    && \
-                    {os.path.join(LAUNCHER_DIRECTORY, self.executable)}',
+                    f'sleep 1 && mv {os.path.join(self.temp_dir, f"{self.executable}")} {os.path.join(LAUNCHER_DIRECTORY, self.executable)} && mv {os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)} {sys._MEIPASS} && exec {os.path.join(LAUNCHER_DIRECTORY, self.executable)}',
                 ],
                 start_new_session=True,
             )
-
+        os._exit(0)
+        
+    def clear_old_meipass(self):
+        # HACK: remove old _MEIPASS folder
+        meipass_parent = os.path.dirname(sys._MEIPASS)
+        meipass_folder = os.path.basename(sys._MEIPASS)
+        for folder in os.listdir(meipass_parent):
+            if folder.startswith("_MEI") and folder != meipass_folder:
+                shutil.rmtree(os.path.join(meipass_parent, folder))
+                logging.info(f"Removed old _MEIPASS folder: {folder}")
+        
+        logging.info("Old MEIPASS folders cleared.")
 
 updater = Updater()
