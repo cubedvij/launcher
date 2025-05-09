@@ -26,6 +26,10 @@ jobs:
       - name: Install the project
         run: uv sync --all-extras --dev
 
+      - name: Fetch tags
+        run: |
+          git fetch --tags --depth=1
+
       - name: Run script
         run: |
           python update_version.py --dev
