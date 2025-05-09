@@ -2,6 +2,7 @@ import logging
 import os
 import asyncio
 import subprocess
+import sys
 
 import httpx
 import flet as ft
@@ -85,6 +86,8 @@ class MainPage(ft.View):
         self.page.update()
         updater.download_update()
         self.page.window.close()
+        os._exit(0)
+        sys.exit(0)
         
     def build_ui(self):
         changelog_text = httpx.get(
