@@ -89,13 +89,15 @@ class Updater:
                 [
                     "powershell",
                     "-Command",
-                    "Start-Sleep -Seconds 1; "
+                    "Start-Sleep -Seconds 3; "
                     + f"Move-Item -Force -Path '{os.path.join(self.temp_dir, self.executable)}' -Destination '{os.path.join(LAUNCHER_DIRECTORY, self.executable)}'; "
                     + f"Move-Item -Force -Path '{os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)}' -Destination '{sys._MEIPASS}'; "
                     + f"Start-Process -FilePath '{os.path.join(LAUNCHER_DIRECTORY, self.executable)}' -NoNewWindow",
                 ],
                 start_new_session=True,
             )
+            sys.exit(0)
+            os._exit(0)
         elif SYSTEM_OS == "Linux":
             # make new subprocess to replace the current version with wait 5 seconds and open the launcher
             os.chmod(
@@ -113,7 +115,7 @@ class Updater:
                 ],
                 start_new_session=True,
             )
-        os._exit(0)
+            os._exit(0)
 
     def clear_old_meipass(self):
         # HACK: remove old _MEIPASS folder
