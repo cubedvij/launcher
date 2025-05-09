@@ -20,6 +20,7 @@ if _COMPILED:
     logging.getLogger("flet_core").setLevel(logging.INFO)
     # HACK: remove old meipass folder
     updater.clear_old_meipass()
+    updater.copy_meipass()
 else:
     logging.basicConfig(
         level=logging.INFO,
