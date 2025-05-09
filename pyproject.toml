@@ -1,6 +1,6 @@
 [project]
 name = "cubedvij-launcher"
-version = "1.0.9"
+version = "1.0.10"
 description = "Launcher for Minecraft server"
 readme = "README.md"
 requires-python = ">=3.13"
