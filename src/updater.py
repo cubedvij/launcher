@@ -28,8 +28,6 @@ class Updater:
         self.temp_dir = APPDATA_FOLDER / "temp"
         if not os.path.exists(self.temp_dir):
             os.makedirs(self.temp_dir)
-        self.latest_download_url = ""
-        self.latest_version = ""
         
     async def check_for_update(self) -> bool:
         if "dev" in self.version or not _COMPILED:
@@ -47,7 +45,7 @@ class Updater:
             if response.status_code != 200:
                 logging.error(f"Failed to check for updates: {response.status_code}")
                 return ""
-            self.latest_version = response.json()["tag_name"].replace("v", "")
+            self.latest_version = response.json()["tag_name"]
             # set latest_download_url to the first asset in the assets list by SYSTEM_OS
             for asset in response.json()["assets"]:
                 if asset["name"] == os.path.basename(sys.executable):
