@@ -83,10 +83,10 @@ class MainPage(ft.View):
         )
         self.page.overlay.append(self.update_modal)
         self.page.update()
-        updater.download_update()
-        # close the launcher
+        self.page.run_thread(updater.download_update)
+        self.page.window.destroy()
         self.page.window.close()
-
+        
     def build_ui(self):
         changelog_text = httpx.get(
             CHANGELOG_URL,

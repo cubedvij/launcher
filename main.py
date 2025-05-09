@@ -4,7 +4,7 @@ import flet as ft
 
 from src.auth import account
 from src.routes import LoginPage, MainPage, RegisterPage, ProfilePage, SettingsPage
-from src.config import WINDOW_SIZE, LAUNCHER_NAME, LAUNCHER_VERSION, _COMPILED, APPDATA_FOLDER
+from src.config import WINDOW_SIZE, LAUNCHER_NAME, LAUNCHER_VERSION, _COMPILED, APPDATA_FOLDER, LAUNCHER_DIRECTORY
 
 # Fix SSL on Linux
 import certifi
@@ -16,22 +16,23 @@ if _COMPILED:
     logging.basicConfig(
         filename=APPDATA_FOLDER / "launcher.log",
         level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
+        # make it more readable for the user
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+
     )
     logging.getLogger("flet_core").setLevel(logging.INFO)
-    logging.getLogger().addHandler(logging.StreamHandler())
-    logging.getLogger().setLevel(logging.INFO)
-    logging.debug(f"Launcher version: {LAUNCHER_VERSION}")
 else:
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
+        # make it more readable for the user
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
     logging.getLogger("flet_core").setLevel(logging.INFO)
-    logging.getLogger().addHandler(logging.StreamHandler())
-    logging.getLogger().setLevel(logging.INFO)
-    logging.debug(f"Launcher version: {LAUNCHER_VERSION}")
 
+logging.info(f"Launcher version: {LAUNCHER_VERSION}")
+logging.info(f"Launcher directory: {LAUNCHER_DIRECTORY}")
 
 def main(page: ft.Page):
     page.title = f"{LAUNCHER_NAME} {LAUNCHER_VERSION}"

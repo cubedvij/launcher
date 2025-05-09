@@ -1,12 +1,9 @@
 # update the version with the latest git commit
 import sys
 import subprocess
-import tomllib
 
 git_commit = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True)
-pyproject = tomllib.load(open("pyproject.toml", "rb"))
-version = pyproject["project"]["version"]
-print(sys.argv)
+version = subprocess.check_output(["git", "describe", "--tags"], text=True).strip()
 if sys.argv[1] == "--release":
     new_version = version
 elif sys.argv[1] == "--dev":

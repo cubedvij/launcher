@@ -1,8 +1,16 @@
+import os
+import tempfile
 import httpx
 import logging
 import subprocess
 
-from .config import LATEST_LAUNCHER_RELEASE_URL, LAUNCHER_VERSION, _COMPILED, SYSTEM_OS
+from .config import (
+    LATEST_LAUNCHER_RELEASE_URL,
+    LAUNCHER_VERSION,
+    _COMPILED,
+    SYSTEM_OS,
+    LAUNCHER_DIRECTORY,
+)
 
 
 class Updater:
@@ -12,7 +20,8 @@ class Updater:
         self.latest_download_url = ""
         self.latest_version = ""
         self.update_available = False
-
+        self.temp_dir = tempfile.gettempdir()
+        
     async def check_for_update(self) -> bool:
         if "dev" in self.version or not _COMPILED:
             # Don't check for updates in dev build or if not compiled
@@ -47,7 +56,7 @@ class Updater:
             if response.status_code != 200:
                 logging.error(f"Failed to download update: {response.status_code}")
                 return
-            with open(f"{self.executable}.TMP", "wb") as f:
+            with open(os.path.join(self.temp_dir, f"{self.executable}"), "wb") as f:
                 f.write(response.content)
         logging.info("Update downloaded successfully.")
         self.replace_current_version()
@@ -58,17 +67,29 @@ class Updater:
                 [
                     "cmd",
                     "/c",
-                    f"timeout 3 && move /y {self.executable}.TMP {self.executable} && start {self.executable}",
+                    f'timeout 1 && move /y {os.path.join(self.temp_dir, f"{self.executable}")} \
+                    {os.path.join(LAUNCHER_DIRECTORY, self.executable)} \
+                    && \
+                    start "" {os.path.join(LAUNCHER_DIRECTORY, self.executable)}',
                 ],
+                start_new_session=True,
             )
         elif SYSTEM_OS == "Linux":
-            # make new subprocess to replace the current version with wait 5 seconds and open the launcher
+            # make new subprocess to replace the current version with wait 5 seconds and open the launcher    
+            os.chmod(
+                os.path.join(self.temp_dir, f"{self.executable}"),
+                0o755,
+            )
             subprocess.Popen(
                 [
                     "bash",
                     "-c",
-                    f"sleep 3 && mv {self.executable}.TMP {self.executable} && chmod +x ./{self.executable} && ./{self.executable}",
+                    f'sleep 1 && mv {os.path.join(self.temp_dir, f"{self.executable}")} \
+                    {os.path.join(LAUNCHER_DIRECTORY, self.executable)} \
+                    && \
+                    {os.path.join(LAUNCHER_DIRECTORY, self.executable)}',
                 ],
+                start_new_session=True,
             )
 
 

@@ -12,8 +12,11 @@ _COMPILED = getattr(sys, 'frozen', False)
 if _COMPILED:
     # If the script is compiled, use the directory of the executable
     LAUNCHER_VERSION = _version.version
+    LAUNCHER_DIRECTORY = os.path.dirname(sys.executable)
 else:
     LAUNCHER_VERSION = "[DEVELOPMENT]"
+    LAUNCHER_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+    
 
 WINDOW_SIZE = (900, 564)
 
@@ -24,7 +27,7 @@ CHANGELOG_URL = "https://raw.githubusercontent.com/cubedvij/modpack/refs/heads/m
 MODPACK_REPO_URL = "https://github.com/cubedvij/modpack"
 LATEST_LAUNCHER_RELEASE_URL = "https://api.github.com/repos/cubedvij/launcher/releases/latest"
 
-LAUNCHER_DIRECTORY = Path(__file__).parent
+
 LAUNCHER_NAME = "Кубічний Лаунчер"
 
 SYSTEM_OS = platform.system()
