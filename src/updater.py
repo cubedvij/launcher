@@ -4,7 +4,6 @@ import shutil
 import httpx
 import logging
 import subprocess
-import multiprocessing
 
 
 
@@ -15,6 +14,7 @@ from .config import (
     SYSTEM_OS,
     LAUNCHER_DIRECTORY,
     APPDATA_FOLDER,
+    MEIPASS_FOLDER_NAME,
 )
 
 
@@ -66,21 +66,22 @@ class Updater:
             with open(os.path.join(self.temp_dir, f"{self.executable}"), "wb") as f:
                 f.write(response.content)
         logging.info("Update downloaded successfully.")
-        # self.replace_current_version()
-        multiprocessing.Process(
-            target=self.replace_current_version,
-            name="replace_current_version",
-        ).start()
-
-    def replace_current_version(self):
+        self.replace_current_version()
+       
+    def copy_meipass(self):
         # HACK: copy _MEIPASS to the temp directory
-        MEIPASS_FOLDER_NAME = os.path.basename(sys._MEIPASS)
+        if not os.path.exists(os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME),):
+            os.makedirs(os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME))
+        # copy _MEIPASS to the temp
         shutil.copytree(
             sys._MEIPASS,
             os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME),
             dirs_exist_ok=True,
         )
         logging.info(f"Copied _MEIPASS to temporary directory: {MEIPASS_FOLDER_NAME}")
+
+    def replace_current_version(self):
+        self.copy_meipass()
         # make new subprocess to replace the current version with wait 5 seconds and open the launcher
         if SYSTEM_OS == "Windows":
             subprocess.Popen(

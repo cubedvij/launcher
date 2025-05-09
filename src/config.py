@@ -13,6 +13,7 @@ if _COMPILED:
     # If the script is compiled, use the directory of the executable
     LAUNCHER_VERSION = _version.version
     LAUNCHER_DIRECTORY = os.path.dirname(sys.executable)
+    MEIPASS_FOLDER_NAME = os.path.basename(sys._MEIPASS)
 else:
     LAUNCHER_VERSION = "[DEV]"
     LAUNCHER_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
