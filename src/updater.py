@@ -47,10 +47,10 @@ class Updater:
             if response.status_code != 200:
                 logging.error(f"Failed to check for updates: {response.status_code}")
                 return ""
-            self.latest_version = response.json()["tag_name"].lstrip("v")
-            # set  latest_download_url to the first asset in the assets list by SYSTEM_OS
+            self.latest_version = response.json()["tag_name"].replace("v", "")
+            # set latest_download_url to the first asset in the assets list by SYSTEM_OS
             for asset in response.json()["assets"]:
-                if asset["name"] == "cube-launcher":
+                if asset["name"] == os.path.basename(sys.executable):
                     self.latest_download_url = asset["browser_download_url"]
                     self.executable = asset["name"]
                     break
