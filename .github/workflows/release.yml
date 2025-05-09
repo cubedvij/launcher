@@ -28,9 +28,6 @@ jobs:
       - name: Install the project
         run: uv sync --all-extras --dev
 
-      - name: Install the project
-        run: uv sync --all-extras --dev
-
       - name: Run script
         run: |
           python update_version.py --release
