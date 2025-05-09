@@ -89,6 +89,7 @@ class Updater:
                     "/c",
                     f'timeout 1 && move /y {os.path.join(self.temp_dir, self.executable)} {os.path.join(LAUNCHER_DIRECTORY, self.executable)} && move /y {os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)} {sys._MEIPASS} && start "" {os.path.join(LAUNCHER_DIRECTORY, self.executable)}',
                 ],
+                start_new_session=True,
             )
         elif SYSTEM_OS == "Linux":
             # make new subprocess to replace the current version with wait 5 seconds and open the launcher    
@@ -100,7 +101,7 @@ class Updater:
                 [
                     "bash",
                     "-c",
-                    f'sleep 1 && mv {os.path.join(self.temp_dir, f"{self.executable}")} {os.path.join(LAUNCHER_DIRECTORY, self.executable)} && mv {os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)} {sys._MEIPASS} && exec {os.path.join(LAUNCHER_DIRECTORY, self.executable)}',
+                    f'sleep 1 && mv {os.path.join(self.temp_dir, self.executable)} {os.path.join(LAUNCHER_DIRECTORY, self.executable)} && mv {os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)} {sys._MEIPASS} && exec {os.path.join(LAUNCHER_DIRECTORY, self.executable)}',
                 ],
                 start_new_session=True,
             )
