@@ -6,7 +6,6 @@ import logging
 import subprocess
 
 
-
 from .config import (
     LATEST_LAUNCHER_RELEASE_URL,
     LAUNCHER_VERSION,
@@ -28,7 +27,7 @@ class Updater:
         self.temp_dir = APPDATA_FOLDER / "temp"
         if not os.path.exists(self.temp_dir):
             os.makedirs(self.temp_dir)
-        
+
     async def check_for_update(self) -> bool:
         if "dev" in self.version or not _COMPILED:
             # Don't check for updates in dev build or if not compiled
@@ -67,10 +66,12 @@ class Updater:
                 f.write(response.content)
         logging.info("Update downloaded successfully.")
         self.replace_current_version()
-       
+
     def copy_meipass(self):
         # HACK: copy _MEIPASS to the temp directory
-        if not os.path.exists(os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME),):
+        if not os.path.exists(
+            os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME),
+        ):
             os.makedirs(os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME))
         # copy _MEIPASS to the temp
         shutil.copytree(
@@ -86,14 +87,17 @@ class Updater:
         if SYSTEM_OS == "Windows":
             subprocess.Popen(
                 [
-                    "cmd",
-                    "/c",
-                    f'timeout 1 && move /y {os.path.join(self.temp_dir, self.executable)} {os.path.join(LAUNCHER_DIRECTORY, self.executable)} && move /y {os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)} {sys._MEIPASS} && start "" {os.path.join(LAUNCHER_DIRECTORY, self.executable)}',
+                    "powershell",
+                    "-Command",
+                    "Start-Sleep -Seconds 1; "
+                    + f"Move-Item -Force -Path '{os.path.join(self.temp_dir, self.executable)}' -Destination '{os.path.join(LAUNCHER_DIRECTORY, self.executable)}'; "
+                    + f"Move-Item -Force -Path '{os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)}' -Destination '{sys._MEIPASS}'; "
+                    + f"Start-Process -FilePath '{os.path.join(LAUNCHER_DIRECTORY, self.executable)}' -NoNewWindow",
                 ],
                 start_new_session=True,
             )
         elif SYSTEM_OS == "Linux":
-            # make new subprocess to replace the current version with wait 5 seconds and open the launcher    
+            # make new subprocess to replace the current version with wait 5 seconds and open the launcher
             os.chmod(
                 os.path.join(self.temp_dir, f"{self.executable}"),
                 0o755,
@@ -102,12 +106,15 @@ class Updater:
                 [
                     "bash",
                     "-c",
-                    f'sleep 1 && mv {os.path.join(self.temp_dir, self.executable)} {os.path.join(LAUNCHER_DIRECTORY, self.executable)} && mv {os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)} {sys._MEIPASS} && exec {os.path.join(LAUNCHER_DIRECTORY, self.executable)}',
+                    "sleep 1 && "
+                    + f"mv '{os.path.join(self.temp_dir, self.executable)}' '{os.path.join(LAUNCHER_DIRECTORY, self.executable)}' && "
+                    + f"mv '{os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)}' '{sys._MEIPASS}' && "
+                    + f"exec '{os.path.join(LAUNCHER_DIRECTORY, self.executable)}'",
                 ],
                 start_new_session=True,
             )
         os._exit(0)
-        
+
     def clear_old_meipass(self):
         # HACK: remove old _MEIPASS folder
         meipass_parent = os.path.dirname(sys._MEIPASS)
@@ -116,7 +123,8 @@ class Updater:
             if folder.startswith("_MEI") and folder != meipass_folder:
                 shutil.rmtree(os.path.join(meipass_parent, folder))
                 logging.info(f"Removed old _MEIPASS folder: {folder}")
-        
+
         logging.info("Old MEIPASS folders cleared.")
+
 
 updater = Updater()
