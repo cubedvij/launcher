@@ -3,7 +3,7 @@ import sys
 import subprocess
 
 git_commit = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True)
-version = subprocess.check_output(["git", "describe", "--tags", "HEAD"], text=True).strip()
+version = subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"], text=True).strip()
 if sys.argv[1] == "--release":
     new_version = version
 elif sys.argv[1] == "--dev":
