@@ -54,15 +54,15 @@ jobs:
       #     cosign sign-blob --yes --output-signature "dist/cube-launcher.exe.sig" "dist/cube-launcher.exe"
 
       - name: Sign Windows Executable
-        uses: skymatic/code-sign-action@v1
+        uses: dlemstra/code-sign-action@v1
         with:
           certificate: '${{ secrets.CERTIFICATE }}'
-          password: '${{ secrets.CERT_PASSWORD }}'
-          certificatesha1: '${{ secrets.CERTHASH }}'
-          certificatename: '${{ secrets.CERTNAME }}'
-          timestampUrl: 'http://timestamp.digicert.com'
+          password: '${{ secrets.CERTIFICATE_PASSWORD }}'
           folder: 'dist'
-          recursive: false
+          recursive: true
+          files: |
+            cube-launcher.exe
+          description: 'TestName'
 
       # - name: Attest build provenance
       #   uses: actions/attest-build-provenance@v1
