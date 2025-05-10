@@ -49,12 +49,12 @@ jobs:
             main.py 
         working-directory: .
 
-      - name: Sign with cosign (keyless)
-        if: runner.os == 'Windows'
-        env:
-          COSIGN_EXPERIMENTAL: "1"
-        run: |
-          cosign sign-blob --yes --output-signature "dist/cube-launcher.exe.sig" "dist/cube-launcher.exe"
+      # - name: Sign with cosign (keyless)
+      #   if: runner.os == 'Windows'
+      #   env:
+      #     COSIGN_EXPERIMENTAL: "1"
+      #   run: |
+      #     cosign sign-blob --yes --output-signature "dist/cube-launcher.exe.sig" "dist/cube-launcher.exe"
 
       - name: Sign Windows Executable
         if: runner.os == 'Windows'
@@ -64,7 +64,6 @@ jobs:
           password: '${{ secrets.CERT_PASSWORD }}'
           certificatesha1: '${{ secrets.CERTHASH }}'
           certificatename: '${{ secrets.CERTNAME }}'
-          description: 'Cube Launcher'
           timestampUrl: 'http://timestamp.digicert.com'
           folder: 'dist'
           recursive: false
