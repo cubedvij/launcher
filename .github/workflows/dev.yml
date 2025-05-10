@@ -58,7 +58,7 @@ jobs:
 
       - name: Windows signtool.exe code sign action
         if: runner.os == 'Windows'
-        uses: skymatic/code-sign-action@v1
+        uses: skymatic/code-sign-action@v3
         with:
           certificate: '${{ secrets.CODE_SIGNING_CERTIFICATE }}'
           password: '${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}'
@@ -67,6 +67,7 @@ jobs:
           description: 'CubeDvij Launcher'
           timestampUrl: 'http://timestamp.digicert.com'
           folder: 'dist'
+          recursive: false
 
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v1
