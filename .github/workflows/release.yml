@@ -6,7 +6,9 @@ on:
       - 'v*.*.*' # Matches version tags like v1.0.0
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   build:
