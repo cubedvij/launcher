@@ -7,18 +7,14 @@ on:
     branches: [main]
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
+  # build:
+  #   strategy:
+  #     matrix:
+  #       os: [ubuntu-latest, windows-latest]
 
-    runs-on: ${{ matrix.os }}
-    
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
-      attestations: write
+  #   runs-on: ${{ matrix.os }}
+  build_windows:
+    runs-on: windows-latest
 
     steps:
       - name : Checkout code
@@ -58,7 +54,6 @@ jobs:
       #     cosign sign-blob --yes --output-signature "dist/cube-launcher.exe.sig" "dist/cube-launcher.exe"
 
       - name: Sign Windows Executable
-        if: runner.os == 'Windows'
         uses: skymatic/code-sign-action@v3.0.0
         with:
           certificate: '${{ secrets.CERTIFICATE }}'
