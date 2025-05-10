@@ -57,6 +57,7 @@ jobs:
           cosign sign-blob --yes --output-signature "dist/cube-launcher.exe.sig" "dist/cube-launcher.exe"
 
       - name: Sign Windows Executable
+        if: runner.os == 'Windows'
         uses: skymatic/code-sign-action@v3
         with:
           certificate: '${{ secrets.CERTIFICATE }}'
