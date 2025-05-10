@@ -13,13 +13,13 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
-
+    
     permissions:
-      contents: read
+      contents: write
       pages: write
       id-token: write
       attestations: write
-      
+
     steps:
       - uses: actions/checkout@v4
 

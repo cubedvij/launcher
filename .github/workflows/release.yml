@@ -5,6 +5,7 @@ on:
     tags:
       - 'v*.*.*' # Matches version tags like v1.0.0
 
+
 jobs:
   build:
     strategy:
@@ -14,7 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     permissions:
-      contents: read
+      contents: write
       pages: write
       id-token: write
       attestations: write
