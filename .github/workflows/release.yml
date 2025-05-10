@@ -49,12 +49,11 @@ jobs:
         working-directory: .
 
       - name: Sign with cosign (keyless)
+        if: runner.os == 'Windows'
         env:
           COSIGN_EXPERIMENTAL: "1"
         run: |
-          for file in dist/*.exe; do
-            cosign sign-blob --yes --output-signature "${file}.sig" "$file"
-          done
+          cosign sign-blob --yes --output-signature "dist/cube-launcher.exe.sig" "dist/cube-launcher.exe"
         
       - name: Create release
         id: create_release
