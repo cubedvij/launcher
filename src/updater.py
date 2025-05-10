@@ -87,13 +87,14 @@ class Updater:
         if SYSTEM_OS == "Windows":
             subprocess.Popen(
                 [
-                    "powershell",
-                    "-Command",
-                    "Start-Sleep -Seconds 3; "
-                    + f"Move-Item -Force -Path '{os.path.join(self.temp_dir, self.executable)}' -Destination '{os.path.join(LAUNCHER_DIRECTORY, self.executable)}'; "
-                    + f"Move-Item -Force -Path '{os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)}' -Destination '{sys._MEIPASS}'; "
-                    + f"Start-Process -FilePath '{os.path.join(LAUNCHER_DIRECTORY, self.executable)}' -NoNewWindow",
+                    "cmd",
+                    "/c",
+                    "timeout /t 1 & "
+                    + f"move /y {os.path.join(self.temp_dir, self.executable)} {os.path.join(LAUNCHER_DIRECTORY, self.executable)} & "
+                    + f"move /y {os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)} {sys._MEIPASS} & "
+                    + f"start {os.path.join(LAUNCHER_DIRECTORY, self.executable)}",
                 ],
+                creationflags=subprocess.CREATE_NO_WINDOW,
                 start_new_session=True,
             )
         elif SYSTEM_OS == "Linux":

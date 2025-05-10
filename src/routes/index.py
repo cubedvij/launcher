@@ -85,10 +85,21 @@ class MainPage(ft.View):
         self.page.overlay.append(self.update_modal)
         self.page.update()
         updater.download_update()
-        self.page.window.close()
-        os._exit(0)
-        sys.exit(0)
-        
+        logging.info("Update downloaded successfully.")
+        self.page.overlay.remove(self.update_modal)
+        self.page.update()
+        self.kill_app()
+        logging.info("Launcher exited.")
+    
+    def kill_app(self):
+        logging.info("Trying to exit program via asyncio")
+        to_cancel = asyncio.all_tasks(self.page.loop)
+        if not to_cancel:
+            return
+        logging.info(f"Canceling {len(to_cancel)} tasks")
+        for task in to_cancel:
+            task.cancel()
+            
     def build_ui(self):
         changelog_text = httpx.get(
             CHANGELOG_URL,

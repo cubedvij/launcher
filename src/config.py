@@ -17,7 +17,7 @@ if _COMPILED:
 else:
     LAUNCHER_VERSION = "[DEV]"
     LAUNCHER_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
-
+    MEIPASS_FOLDER_NAME = None
 
 WINDOW_SIZE = (900, 564)
 
