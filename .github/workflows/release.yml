@@ -55,7 +55,19 @@ jobs:
           COSIGN_EXPERIMENTAL: "1"
         run: |
           cosign sign-blob --yes --output-signature "dist/cube-launcher.exe.sig" "dist/cube-launcher.exe"
-        
+      
+      - name: Windows signtool.exe code sign action
+        if: runner.os == 'Windows'
+        uses: skymatic/code-sign-action@v1
+        with:
+          certificate: '${{ secrets.CODE_SIGNING_CERTIFICATE }}'
+          password: '${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}'
+          certificatesha1: '${{ secrets.CERTIFICATE_SHA1 }}'
+          certificatename: '${{ secrets.CERTIFICATE_NAME }}'
+          description: 'CubeDvij Launcher'
+          timestampUrl: 'http://timestamp.digicert.com'
+          folder: './dist'
+
       - name: Create release
         id: create_release
         uses: softprops/action-gh-release@v2
@@ -66,7 +78,6 @@ jobs:
           make_latest: true
           files: |
             dist/*
-            dist/*.sig
         continue-on-error: true
 
       - name: Attest build provenance
