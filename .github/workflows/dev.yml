@@ -7,14 +7,12 @@ on:
     branches: [main]
 
 jobs:
-  # build:
-  #   strategy:
-  #     matrix:
-  #       os: [ubuntu-latest, windows-latest]
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
-  #   runs-on: ${{ matrix.os }}
-  build_windows:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name : Checkout code
@@ -26,8 +24,8 @@ jobs:
           enable-cache: true
           activate-environment: true
 
-      # - name: Install cosign
-      #   uses: sigstore/cosign-installer@v3.5.0
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.5.0
 
       - name: Install the project
         run: uv sync --all-extras --dev
@@ -46,28 +44,28 @@ jobs:
             main.py 
         working-directory: .
 
-      # - name: Sign with cosign (keyless)
-      #   if: runner.os == 'Windows'
-      #   env:
-      #     COSIGN_EXPERIMENTAL: "1"
-      #   run: |
-      #     cosign sign-blob --yes --output-signature "dist/cube-launcher.exe.sig" "dist/cube-launcher.exe"
+      - name: Sign with cosign (keyless)
+        if: runner.os == 'Windows'
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          cosign sign-blob --yes --output-signature "dist/cube-launcher.exe.sig" "dist/cube-launcher.exe"
 
       - name: Sign Windows Executable
+        if: runner.os == 'Windows'
         uses: dlemstra/code-sign-action@v1
         with:
           certificate: '${{ secrets.CERTIFICATE }}'
           password: '${{ secrets.CERTIFICATE_PASSWORD }}'
           folder: 'dist'
-          recursive: true
+          recursive: false
           files: |
             cube-launcher.exe
-          description: 'TestName'
 
-      # - name: Attest build provenance
-      #   uses: actions/attest-build-provenance@v1
-      #   with:
-      #     subject-path: ./dist/*
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: ./dist/*
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4

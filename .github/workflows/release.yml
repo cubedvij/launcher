@@ -56,17 +56,16 @@ jobs:
         run: |
           cosign sign-blob --yes --output-signature "dist/cube-launcher.exe.sig" "dist/cube-launcher.exe"
       
-      - name: Windows signtool.exe code sign action
+      - name: Sign Windows Executable
         if: runner.os == 'Windows'
-        uses: skymatic/code-sign-action@v1
+        uses: dlemstra/code-sign-action@v1
         with:
-          certificate: '${{ secrets.CODE_SIGNING_CERTIFICATE }}'
-          password: '${{ secrets.CODE_SIGNING_CERTIFICATE_PASSWORD }}'
-          certificatesha1: '${{ secrets.CERTIFICATE_SHA1 }}'
-          certificatename: '${{ secrets.CERTIFICATE_NAME }}'
-          description: 'CubeDvij Launcher'
-          timestampUrl: 'http://timestamp.digicert.com'
+          certificate: '${{ secrets.CERTIFICATE }}'
+          password: '${{ secrets.CERTIFICATE_PASSWORD }}'
           folder: 'dist'
+          recursive: false
+          files: |
+            cube-launcher.exe
 
       - name: Create release
         id: create_release
