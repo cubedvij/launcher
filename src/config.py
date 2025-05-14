@@ -33,7 +33,7 @@ SYSTEM_OS = platform.system()
 if SYSTEM_OS == "Windows":
     APPDATA_FOLDER = Path.home() / "AppData" / "Roaming"
 if SYSTEM_OS == "Linux":
-    APPDATA_FOLDER = Path.home() / ".config"
+    APPDATA_FOLDER = Path.home() / ".local" / "share"
 
 APPDATA_FOLDER /= "cubedvij"
 SKINS_CACHE_FOLDER = APPDATA_FOLDER / ".skins_cache"
@@ -57,8 +57,6 @@ if not os.path.exists(USER_FILE):
     with open(USER_FILE, "w") as f:
         f.write("{}")
 
-# TODO: -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=adaptive
-# TODO: User Azul Java 17+ for Shenandoah
 JVM_ARGS = [
     "-XX:+UnlockExperimentalVMOptions",
     "-XX:+UseShenandoahGC",
