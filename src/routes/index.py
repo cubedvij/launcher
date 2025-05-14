@@ -22,6 +22,7 @@ from ..config import (
     CHANGELOG_URL,
     LAUNCHER_NAME,
     LAUNCHER_VERSION,
+    SYSTEM_OS,
 )
 from ..settings import settings
 
@@ -436,7 +437,15 @@ class MainPage(ft.View):
         )
         # change working directory to .minecraft
         os.chdir(MINECRAFT_FOLDER)
-        self._minecraft_process = subprocess.Popen(minecraft_command)
+        if SYSTEM_OS == "Windows":
+            self._minecraft_process = subprocess.Popen(minecraft_command,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+                start_new_session=True,
+            )
+        elif SYSTEM_OS == "Linux":
+            self._minecraft_process = subprocess.Popen(minecraft_command,
+                start_new_session=True,
+            )
         self.page.run_task(self._check_minecraft)
         self._play_button_stop()
         self._check_game_button_disable()
@@ -623,6 +632,6 @@ class MainPage(ft.View):
 
     def _open_link(self, link: str):
         if os.name == "nt":
-            os.system(f"start {link}")
+            subprocess.Popen(f'explorer /select,"{link}"')
         else:
-            os.system(f"xdg-open {link}")
+            subprocess.Popen(["xdg-open", link])

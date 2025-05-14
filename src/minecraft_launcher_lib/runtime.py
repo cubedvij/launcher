@@ -145,11 +145,17 @@ def install_jvm_runtime(
     with open(version_path, "w", encoding="utf-8") as f:
         f.write(str(version_name))
 
-    # make java executable(linux)
+    # make java executable (linux)
     if system == "Linux":
-        java_path = os.path.join(base_path, "bin", "java")
-        if os.path.isfile(java_path):
-            os.chmod(java_path, 0o755)
+        # make all files executable 
+        for root, _, files in os.walk(base_path / "runtime"):
+            # Skip if the file is already executable
+            for file in files:
+                file_path = os.path.join(root, file)
+                if os.access(file_path, os.X_OK):
+                    continue
+                os.chmod(file_path, 0o755)
+        
 
 
 def get_executable_path(
