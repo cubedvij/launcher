@@ -19,7 +19,11 @@ class LoginPage(ft.View):
             label="Логін", autofocus=True, width=300, on_submit=self.login
         )
         self.password = ft.TextField(
-            label="Пароль", password=True, can_reveal_password=True, width=300, on_submit=self.login
+            label="Пароль",
+            password=True,
+            can_reveal_password=True,
+            width=300,
+            on_submit=self.login,
         )
 
         login_button = ft.ElevatedButton("Увійти", on_click=self.login, width=300)
@@ -54,20 +58,28 @@ class LoginPage(ft.View):
         if username and password:
             response = account.login(username, password)
             if response.status_code != 200:
-                status_bar = ft.SnackBar(
-                    ft.Text(response.json()["errorMessage"]), open=True, bgcolor=ft.Colors.RED_400
+                self._status_bar = ft.SnackBar(
+                    ft.Text(response.json()["errorMessage"]),
+                    open=True,
+                    bgcolor=ft.Colors.RED_400,
+                    behavior=ft.SnackBarBehavior.FLOATING,
                 )
             else:
-                status_bar = ft.SnackBar(
+                self._status_bar = ft.SnackBar(
                     ft.Text("Успішно авторизовано!"),
                     open=True,
                     bgcolor=ft.Colors.GREEN_400,
+                    behavior=ft.SnackBarBehavior.FLOATING,
                 )
 
                 self.page.go("/")
         else:
-            status_bar = ft.SnackBar(
-                ft.Text("Заповніть всі поля!"), open=True, bgcolor=ft.Colors.RED_400
+            self._status_bar = ft.SnackBar(
+                ft.Text("Заповніть всі поля!"),
+                open=True,
+                bgcolor=ft.Colors.RED_400,
+                behavior=ft.SnackBarBehavior.FLOATING,
             )
-        e.control.page.overlay.append(status_bar)
+        # e.control.page.overlay.append(status_bar)
+        self.page.open(self._status_bar)
         self.page.update()

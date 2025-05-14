@@ -212,12 +212,12 @@ class SettingsPage(ft.View):
         #         ft.FilledTonalButton(
         #             text="Очистити",
         #             icon=ft.Icons.CLEAR,
-        #             on_click=lambda _: print("Clear logs"),
+        #             on_click=lambda _: logging.info("Clear logs"),
         #         ),
         #         ft.FilledTonalButton(
         #             text="Скопіювати",
         #             icon=ft.Icons.COPY,
-        #             on_click=lambda _: print("Copy logs"),
+        #             on_click=lambda _: logging.info("Copy logs"),
         #         ),
         #         ft.FilledButton(
         #             text="Add text",
@@ -281,7 +281,7 @@ class SettingsPage(ft.View):
         self.page.update()
 
     # def _add_text_to_logs(self, event):
-    #     print("Add text")
+    #     logging.info("Add text")
     #     self._logs_text_field.value += "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam eget nunc nec nunc ultricies ultricies. Nullam nec nunc nec nunc ultricies ultricies. Nullam nec nunc nec nunc ultricies ultricies.\n"
     #     self.page.update()
 

@@ -19,18 +19,15 @@ else:
     LAUNCHER_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
     MEIPASS_FOLDER_NAME = None
 
+LAUNCHER_NAME = "Кубічний Лаунчер"
 WINDOW_SIZE = (900, 564)
 
 AUTH_URL = "https://auth.cubedvij.pp.ua"
 SERVER_IP = "play.cubedvij.pp.ua"
-AUTHLIB_INJECTOR_URL = " https://auth.cubedvij.pp.ua/authlib-injector"
+AUTHLIB_INJECTOR_URL = "https://auth.cubedvij.pp.ua/authlib-injector"
 CHANGELOG_URL = "https://raw.githubusercontent.com/cubedvij/modpack/refs/heads/main/README.md"
 MODPACK_REPO_URL = "https://github.com/cubedvij/modpack"
 LATEST_LAUNCHER_RELEASE_URL = "https://api.github.com/repos/cubedvij/launcher/releases/latest"
-
-
-LAUNCHER_NAME = "Кубічний Лаунчер"
-
 SYSTEM_OS = platform.system()
 
 if SYSTEM_OS == "Windows":
@@ -64,11 +61,8 @@ if not os.path.exists(USER_FILE):
 # TODO: User Azul Java 17+ for Shenandoah
 JVM_ARGS = [
     "-XX:+UnlockExperimentalVMOptions",
-    "-XX:+UseG1GC",
-    "-XX:G1NewSizePercent=20",
-    "-XX:G1ReservePercent=20",
-    "-XX:MaxGCPauseMillis=50",
-    "-XX:G1HeapRegionSize=32M",
+    "-XX:+UseShenandoahGC",
+    "-XX:ShenandoahGCHeuristics=adaptive",
 ]
 
 # IN MB

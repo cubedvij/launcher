@@ -1,12 +1,11 @@
-import logging
 import os
+import logging
 import asyncio
 import subprocess
-import sys
 
 import httpx
 import flet as ft
-import minecraft_launcher_lib as mcl
+import src.minecraft_launcher_lib as mcl
 
 from mcstatus import JavaServer
 
@@ -55,7 +54,7 @@ class MainPage(ft.View):
         await account.render_skin()
 
         event.page.views[0].pagelet.appbar.title = ft.Text(
-            f"Привіт, {account.user['user']['players'][0]['name']}!",
+            f"Вітаю, {account.user['user']['players'][0]['name']}!",
             size=20,
             weight=ft.FontWeight.BOLD,
         )
@@ -132,7 +131,7 @@ class MainPage(ft.View):
             leading_width=64,
             bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
             title=ft.Text(
-                "Привіт, користувачу!",
+                "Вітаю, користувачу!",
                 size=20,
                 weight=ft.FontWeight.BOLD,
             ),
@@ -361,7 +360,7 @@ class MainPage(ft.View):
                 await self._update_server_status()
                 await asyncio.sleep(10)
             except Exception as e:
-                print(f"Error updating server status: {e}")
+                logging.info(f"Error updating server status: {e}")
                 await asyncio.sleep(10)
 
     async def _update_server_status(self):
@@ -389,13 +388,13 @@ class MainPage(ft.View):
             self.page.update()
 
     def _check_game(self, event: ft.TapEvent):
-        print("Checking game...")
+        logging.info("Checking game...")
         # check if game is installed
         installed_versions = mcl.utils.get_installed_versions(MINECRAFT_FOLDER)
         installed_versions_list = []
         for version in installed_versions:
             installed_versions_list.append(version["id"])
-        print(f"Installed versions list: {installed_versions_list}")
+        logging.info(f"Installed versions list: {installed_versions_list}")
 
         # check if game is installed
         if not all(
@@ -415,7 +414,7 @@ class MainPage(ft.View):
             self._launch_minecraft(modpack.modloader_full)
 
     def _launch_minecraft(self, version):
-        print("Game is already downloaded.")
+        logging.info("Game is already downloaded.")
         options = {
             "username": account.user["user"]["players"][0]["name"],
             "uuid": account.user["user"]["players"][0]["uuid"],
@@ -444,11 +443,11 @@ class MainPage(ft.View):
         if settings.minimize_launcher:
             self.page.window.minimized = True
         if settings.close_launcher:
-            self.page.window.close()
+            self.kill_app()
         self.page.update()
 
     def _install_minecraft(self):
-        print("Downloading game...")
+        logging.info("Downloading game...")
 
         self._progress_bar.visible = True
         self._progress_text.visible = True
@@ -458,19 +457,37 @@ class MainPage(ft.View):
         self.page.update()
 
         self._set_progress_text("Встановлення authlib-injector...")
-        authlib.download_latest_release(
+        if not authlib.download_latest_release(
             f"{MINECRAFT_FOLDER}/authlib-injector.jar",
-            self._set_progress,
-            self._set_max,
-        )
+            self._download_callback,
+        ):
+            logging.error("Failed to download authlib-injector.")
+            self._set_progress_text("Не вдалося завантажити authlib-injector.")
+            self._progress_bar.visible = False
+            self._progress_text.visible = False
+            self._play_button_enable()
+            self._check_game_button_enable()
+            return
+        
+        logging.info("authlib-injector downloaded successfully.")
         self._set_progress_text("authlib-injector встановлено")
 
         # install modpack
         self._set_progress_text("Встановлення модпаку...")
-        modpack.install(
+        if not modpack.install(
             MINECRAFT_FOLDER,
             self._download_callback,
-        )
+        ):
+            logging.error("Failed to install modpack.")
+            self._set_progress_text("Не вдалося встановити модпак.")
+            self._progress_bar.visible = False
+            self._progress_text.visible = False
+            self._play_button_enable()
+            self._check_game_button_enable()
+            return
+        
+        logging.info("Modpack installed successfully.")
+        self._set_progress_text("Модпак встановлено")
 
         self._progress_bar.visible = False
         self._progress_text.visible = False
@@ -489,7 +506,7 @@ class MainPage(ft.View):
             self.page.update()
 
     def _update_modpack(self):
-        print("Updating modpack...")
+        logging.info("Updating modpack...")
         self._progress_bar.visible = True
         self._progress_text.visible = True
 
@@ -601,6 +618,8 @@ class MainPage(ft.View):
 
     def _set_max(self, max: int):
         self._max_progress = max
+        self._progress_bar.value = 0
+        self._progress_bar.update()
 
     def _open_link(self, link: str):
         if os.name == "nt":

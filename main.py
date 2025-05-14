@@ -13,8 +13,8 @@ if _COMPILED:
         filename=APPDATA_FOLDER / "launcher.log",
         level=logging.INFO,
         # make it more readable for the user
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
+        format="%(asctime)s [%(levelname)s] %(module)s:%(funcName)s %(message)s",
+        datefmt="%H:%M:%S",
 
     )
     logging.getLogger("flet_core").setLevel(logging.INFO)
@@ -24,8 +24,8 @@ else:
     logging.basicConfig(
         level=logging.INFO,
         # make it more readable for the user
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
+        format="%(asctime)s [%(levelname)s] %(module)s:%(funcName)s %(message)s",
+        datefmt="%H:%M:%S",
     )
     logging.getLogger("flet_core").setLevel(logging.INFO)
 

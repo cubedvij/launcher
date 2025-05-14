@@ -1,26 +1,28 @@
+from concurrent.futures import ThreadPoolExecutor
 import os
+import time
 import json
 import zipfile
 import hashlib
+import logging
 
 import httpx
 
 from pathlib import Path
 from typing import Optional, Dict, Tuple, Callable
-from minecraft_launcher_lib.mrpack import (
-    install_minecraft_version,
-    install_forge_version,
-    install_fabric,
-    install_quilt,
-    download_file,
-    check_path_inside_minecraft_directory,
-    empty,
-    CallbackDict,
+
+from .minecraft_launcher_lib._helper import check_path_inside_minecraft_directory, download_file, empty
+from .minecraft_launcher_lib.exceptions import VersionNotFound
+from .minecraft_launcher_lib.fabric import install_fabric
+from .minecraft_launcher_lib.forge import install_forge_version
+from .minecraft_launcher_lib.quilt import install_quilt
+from .minecraft_launcher_lib.types import CallbackDict
+from .minecraft_launcher_lib.mrpack import (
     MrpackInstallOptions,
     MrpackIndex,
-    _filter_mrpack_files,   
-    VersionNotFound,
+    _filter_mrpack_files,
 )
+
 from .config import APPDATA_FOLDER, MINECRAFT_FOLDER, MODPACK_REPO_URL
 
 
@@ -63,7 +65,6 @@ class Modpack:
         self.modloader_full = (
             f"{self.minecraft_version}-{self.modloader}-{self.modloader_version}"
         )
-        
 
     def _fetch_latest_index(self) -> Optional[Dict]:
         """Fetch the latest index data from GitHub."""
@@ -74,7 +75,7 @@ class Modpack:
                 f.write(response.content)
             return json.loads(response.text)
         except httpx.HTTPError as e:
-            print(f"Error fetching modpack index: {e}")
+            logging.info(f"Error fetching modpack index: {e}")
             return None
 
     def _get_installed_modpack_version(self) -> Optional[str]:
@@ -97,32 +98,45 @@ class Modpack:
     def is_up_to_date(self) -> bool:
         """Check if the installed modpack is up to date."""
         if not self.modpack_index:
-            print("No modpack index available")
+            logging.info("No modpack index available")
             return False
 
         if not self.remote_version:
-            print("Modpack version not found")
+            logging.info("Modpack version not found")
             return False
 
         if self.installed_version == self.remote_version:
-            print(f"Modpack is up to date: {self.installed_version}")
+            logging.info(f"Modpack is up to date: {self.installed_version}")
             return True
 
-        print(f"Update available: {self.installed_version} -> {self.remote_version}")
+        logging.info(
+            f"Update available: {self.installed_version} -> {self.remote_version}"
+        )
+        return False
+
+    def _download_file(self, url: str, dest_path: Path, timeout: int = 60) -> bool:
+        """Download a file from a URL to a destination path with retries and chunked download."""
+
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                with httpx.stream(
+                    "GET", url, follow_redirects=True, timeout=timeout
+                ) as response:
+                    response.raise_for_status()
+                    with open(dest_path, "wb") as f:
+                        for chunk in response.iter_bytes():
+                            if chunk:
+                                f.write(chunk)
+                return True
+            except (httpx.HTTPError, KeyError, httpx.IncompleteRead) as e:
+                logging.info(f"Error downloading file (attempt {attempt + 1}): {e}")
+                time.sleep(2)
         return False
 
     def _download_modpack(self) -> bool:
         """Download the modpack file from GitHub repo zip."""
-        try:
-            response = httpx.get(self._zip_url, follow_redirects=True)
-            response.raise_for_status()
-
-            with open(self._modpack_file, "wb") as f:
-                f.write(response.content)
-            return True
-        except (httpx.HTTPError, KeyError) as e:
-            print(f"Error downloading modpack: {e}")
-            return False
+        return self._download_file(self._zip_url, self._modpack_file)
 
     def _get_modpack_info(self) -> Dict:
         """Extract and parse modpack information from the .mrpack file."""
@@ -140,6 +154,7 @@ class Modpack:
         modpack_directory: str | os.PathLike | None = None,
         callback: CallbackDict | None = None,
         mrpack_install_options: MrpackInstallOptions | None = None,
+        max_workers: int | None = 8
     ) -> None:
         # https://codeberg.org/JakobDev/minecraft-launcher-lib/src/branch/master/minecraft_launcher_lib/mrpack.py
         minecraft_directory = os.path.abspath(minecraft_directory)
@@ -161,27 +176,35 @@ class Modpack:
                 index: MrpackIndex = json.load(f)
 
             # Download the files
-            callback.get("setStatus", empty)("Download mrpack files")
             file_list = _filter_mrpack_files(index["files"], mrpack_install_options)
+            
+            callback.get("setStatus", empty)("Завантаження модів...")
             callback.get("setMax", empty)(len(file_list))
+            
+            mods = []
             for count, file in enumerate(file_list):
                 full_path = os.path.abspath(
                     os.path.join(modpack_directory, file["path"])
                 )
 
-                check_path_inside_minecraft_directory(modpack_directory, full_path)
-
-                download_file(
-                    file["downloads"][0],
-                    full_path,
-                    sha1=file["hashes"]["sha1"],
-                    callback=callback,
+                mods.append(
+                    {
+                        "url": file["downloads"][0],
+                        "path": full_path,
+                        "sha1": file["hashes"]["sha1"],
+                    }
                 )
 
-                callback.get("setProgress", empty)(count + 1)
+            # Download the files in parallel
+            count = 0
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = [executor.submit(download_file, mod["url"], mod["path"], sha1=mod["sha1"]) for mod in mods]
+                for future in futures:
+                    future.result()
+                    count += 1
+                    callback.get("setProgress", empty)(count)
 
             # Extract the overrides
-            callback.get("setStatus", empty)("Extract overrides")
             for zip_name in zf.namelist():
                 # Check if the entry is in the overrides and if it is a file
                 if (
@@ -202,8 +225,6 @@ class Modpack:
 
                 check_path_inside_minecraft_directory(modpack_directory, full_path)
 
-                callback.get("setStatus", empty)(f"Extract {zip_name}]")
-
                 try:
                     os.makedirs(os.path.dirname(full_path))
                 except FileExistsError:
@@ -215,28 +236,12 @@ class Modpack:
             if mrpack_install_options.get("skipDependenciesInstall"):
                 return
 
-            # Install dependencies
-            callback.get("setStatus", empty)(
-                "Installing Minecraft " + index["dependencies"]["minecraft"]
-            )
-            install_minecraft_version(
-                index["dependencies"]["minecraft"],
-                minecraft_directory,
-                callback=callback,
-            )
-
             if "forge" in index["dependencies"]:
                 forge_version = None
                 FORGE_DOWNLOAD_URL = "https://maven.minecraftforge.net/net/minecraftforge/forge/{version}/forge-{version}-installer.jar"
                 for current_forge_version in (
-                    index["dependencies"]["minecraft"]
-                    + "-"
-                    + index["dependencies"]["forge"],
-                    index["dependencies"]["minecraft"]
-                    + "-"
-                    + index["dependencies"]["forge"]
-                    + "-"
-                    + index["dependencies"]["minecraft"],
+                    f"{index['dependencies']['minecraft']}-{index['dependencies']['forge']}",
+                    f"{index['dependencies']['minecraft']}-{index['dependencies']['forge']}-{index['dependencies']['minecraft']}",
                 ):
                     if (
                         httpx.head(
@@ -251,18 +256,15 @@ class Modpack:
                 else:
                     raise VersionNotFound(index["dependencies"]["forge"])
 
-                callback.get("setStatus", empty)(f"Installing Forge {forge_version}")
+                # callback.get("setStatus", empty)(f"Installing Forge {forge_version}")
                 install_forge_version(
                     forge_version, minecraft_directory, callback=callback
                 )
 
             if "fabric-loader" in index["dependencies"]:
-                callback.get("setStatus", empty)(
-                    "Installing Fabric "
-                    + index["dependencies"]["fabric-loader"]
-                    + " for Minecraft "
-                    + index["dependencies"]["minecraft"]
-                )
+                # callback.get("setStatus", empty)(
+                #     f"Встановлення Fabric {index['dependencies']['fabric-loader']}"
+                # )
                 install_fabric(
                     index["dependencies"]["minecraft"],
                     minecraft_directory,
@@ -271,12 +273,9 @@ class Modpack:
                 )
 
             if "quilt-loader" in index["dependencies"]:
-                callback.get("setStatus", empty)(
-                    "Installing Quilt "
-                    + index["dependencies"]["quilt-loader"]
-                    + " for Minecraft "
-                    + index["dependencies"]["minecraft"]
-                )
+                # callback.get("setStatus", empty)(
+                #     f"Встановлення Quilt {index['dependencies']['quilt-loader']}"
+                # )
                 install_quilt(
                     index["dependencies"]["minecraft"],
                     minecraft_directory,
@@ -301,14 +300,14 @@ class Modpack:
             # Verify the installation
             if not self.verify_installation():
                 raise RuntimeError("Modpack installation verification failed")
-            
+
             # Update the installed version
             self.installed_version = self.remote_version
             # Save the index file for version tracking
             self._save_modpack_index()
             return True
         except Exception as e:
-            print(f"Error installing modpack: {e}")
+            logging.info(f"Error installing modpack: {e}")
             return False
 
     def _save_modpack_index(self) -> None:
@@ -324,7 +323,7 @@ class Modpack:
         if not self._modpack_file.exists():
             raise FileNotFoundError("Modpack file does not exist")
 
-    def update(self, callback: Optional[Callable] = None) -> None:
+    def update(self, callback: Optional[dict[Callable]] = None) -> None:
         """Update the modpack to the latest version."""
 
         # Update version information
@@ -361,7 +360,6 @@ class Modpack:
         self._save_modpack_index()
         self._load_modpack_info()  # Refresh modpack info
 
-
     def _clean_old_mods(self) -> None:
         """Remove mods that are no longer needed."""
         mods_dir = MINECRAFT_FOLDER / "mods"
@@ -369,9 +367,9 @@ class Modpack:
             for mod in mods_dir.iterdir():
                 if mod.is_file() and mod.suffix == ".jar":
                     mod.unlink()
-                    print(f"Removed old mod: {mod}")
+                    logging.info(f"Removed old mod: {mod}")
         else:
-            print("Mods directory does not exist, skipping cleanup.")
+            logging.info("Mods directory does not exist, skipping cleanup.")
 
     def verify_installation(self) -> bool:
         """Verify that all modpack files are correctly installed."""
@@ -383,13 +381,13 @@ class Modpack:
                 "env" in file and file["env"].get("client") == "required"
             ) or "hashes" in file:
                 if not file_path.exists():
-                    print(f"Missing required file: {file_path}")
+                    logging.info(f"Missing required file: {file_path}")
                     return False
 
                 # Verify file hash if available
                 if "hashes" in file and "sha1" in file["hashes"]:
                     if not self._verify_file_hash(file_path, file["hashes"]["sha1"]):
-                        print(f"File hash mismatch: {file_path}")
+                        logging.info(f"File hash mismatch: {file_path}")
                         return False
 
         return True

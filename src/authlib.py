@@ -1,42 +1,58 @@
 import httpx
 import hashlib
+import time
+import logging
+
+from src.minecraft_launcher_lib._helper import empty
 
 # GITHUB = https://github.com/yushijinhun/authlib-injector/releases
 
 class Authlib:
     def __init__(self):
         self.base_url = "https://api.github.com/repos/yushijinhun/authlib-injector/releases"
-        self.realeases = []
+        self.releases = []
     
     def get_releases(self):
         response = httpx.get(self.base_url)
         if response.status_code != 200:
             return "Помилка сервера або відсутній інтернет"
-        self.realeases = response.json()
-        return self.realeases
-    
+        self.releases = response.json()
+        return self.releases
+
     def get_latest_release(self):
-        if not self.realeases:
+        if not self.releases:
             self.get_releases()
-        return self.realeases[0]
-    
-    def download_latest_release(self, path, set_progress=None, set_size=None):
-        if not self.realeases:
-            self.get_releases()
-        latest = self.get_latest_release()
-        asset = latest["assets"][0]
-        with open(path, "wb") as f:
-            with httpx.stream("GET", asset["browser_download_url"], follow_redirects=True) as response:
-                if response.status_code == 200:
-                    if set_size:
-                        set_size(int(response.headers["Content-Length"]))
+        return self.releases[0]
+
+    def download_latest_release(self, path, callback) -> bool:
+        """Download the latest release asset from GitHub with retries and chunked download."""
+
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                if not self.releases:
+                    self.get_releases()
+                latest = self.get_latest_release()
+                asset = latest["assets"][0]
+                url = asset["browser_download_url"]
+                with httpx.stream("GET", url, follow_redirects=True, timeout=60) as response:
+                    response.raise_for_status()
+                    total = int(response.headers.get("Content-Length", 0))
+                    callback.get("setStatus", empty)("Завантаження authlib-injector...")
+                    callback.get("setMax", empty)(total)
                     downloaded = 0
-                    for chunk in response.iter_bytes(chunk_size=8192):
-                        f.write(chunk)
-                        downloaded += len(chunk)
-                        if set_progress:
-                            set_progress(downloaded)
+                    with open(path, "wb") as f:
+                        for chunk in response.iter_bytes(chunk_size=1024):
+                            f.write(chunk)
+                            downloaded += len(chunk)
+                            callback.get("setProgress", empty)(downloaded)
+                    if downloaded != total:
+                        logging.error("Downloaded file size does not match expected size.")
+                        return False
                 return True
+            except (httpx.HTTPError, KeyError, IndexError) as e:
+                logging.info(f"Error downloading release (attempt {attempt+1}): {e}")
+                time.sleep(2)
         return False
     
     def get_latest_release_hash(self):
