@@ -47,6 +47,7 @@ jobs:
           --cleanup-app \
           --cleanup-packages \
           --no-rich-output \
+          --verbose \
           linux
         working-directory: .
 
@@ -55,12 +56,13 @@ jobs:
         shell: bash
         run: |
           flet build \
+          windows \
           --compile-app \
           --compile-packages \
           --cleanup-app \
           --cleanup-packages \
           --no-rich-output \
-          windows
+          --verbose
         working-directory: .
 
       - name: Sign Windows Executable
