@@ -1,6 +1,6 @@
 import flet as ft
 
-from src.auth import account
+from auth import account
 
 
 class LoginPage(ft.View):

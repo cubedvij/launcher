@@ -4,8 +4,8 @@ import json
 import httpx
 import hashlib
 
-from .minepi import Player
-from .config import AUTH_URL, ACCOUNT_FILE, USER_FILE, SKINS_CACHE_FOLDER
+from minepi import Player
+from config import AUTH_URL, ACCOUNT_FILE, USER_FILE, SKINS_CACHE_FOLDER
 
 
 class Auth:

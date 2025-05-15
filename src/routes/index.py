@@ -5,15 +5,15 @@ import subprocess
 
 import httpx
 import flet as ft
-import src.minecraft_launcher_lib as mcl
+import minecraft_launcher_lib as mcl
 
 from mcstatus import JavaServer
 
-from ..auth import account
-from ..modpack import modpack
-from ..authlib import authlib
-from ..updater import updater
-from ..config import (
+from auth import account
+from modpack import modpack
+from authlib import authlib
+from updater import updater
+from config import (
     AUTHLIB_INJECTOR_URL,
     MINECRAFT_FOLDER,
     SERVER_IP,
@@ -24,7 +24,7 @@ from ..config import (
     LAUNCHER_VERSION,
     SYSTEM_OS,
 )
-from ..settings import settings
+from settings import settings
 
 
 class MainPage(ft.View):
@@ -322,7 +322,6 @@ class MainPage(ft.View):
             alignment=ft.MainAxisAlignment.END,
             horizontal_alignment=ft.CrossAxisAlignment.START,
         )
-        self.page.run_task(self._server_status_update)
         self.bottom_appbar = ft.BottomAppBar(
             content=ft.Row(
                 controls=[
@@ -620,7 +619,7 @@ class MainPage(ft.View):
             if not self._check_minecraft_running():
                 self._play_button_enable()
                 self._check_game_button_enable()
-                self.page.window.minimized = False
+                self.page.window.to_front()
                 self.page.update()
                 break
             await asyncio.sleep(2)

@@ -1,8 +1,8 @@
 import base64
 import flet as ft
 
-from ..auth import account
-from ..config import SKINS_CACHE_FOLDER
+from auth import account
+from config import SKINS_CACHE_FOLDER
 
 
 class ProfilePage(ft.View):

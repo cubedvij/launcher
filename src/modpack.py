@@ -11,19 +11,19 @@ import httpx
 from pathlib import Path
 from typing import Optional, Dict, Tuple, Callable
 
-from .minecraft_launcher_lib._helper import check_path_inside_minecraft_directory, download_file, empty
-from .minecraft_launcher_lib.exceptions import VersionNotFound
-from .minecraft_launcher_lib.fabric import install_fabric
-from .minecraft_launcher_lib.forge import install_forge_version
-from .minecraft_launcher_lib.quilt import install_quilt
-from .minecraft_launcher_lib.types import CallbackDict
-from .minecraft_launcher_lib.mrpack import (
+from minecraft_launcher_lib._helper import check_path_inside_minecraft_directory, download_file, empty
+from minecraft_launcher_lib.exceptions import VersionNotFound
+from minecraft_launcher_lib.fabric import install_fabric
+from minecraft_launcher_lib.forge import install_forge_version
+from minecraft_launcher_lib.quilt import install_quilt
+from minecraft_launcher_lib.types import CallbackDict
+from minecraft_launcher_lib.mrpack import (
     MrpackInstallOptions,
     MrpackIndex,
     _filter_mrpack_files,
 )
 
-from .config import APPDATA_FOLDER, MINECRAFT_FOLDER, MODPACK_REPO_URL
+from config import APPDATA_FOLDER, MINECRAFT_FOLDER, MODPACK_REPO_URL
 
 
 class Modpack:

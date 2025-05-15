@@ -3,7 +3,7 @@ import hashlib
 import time
 import logging
 
-from src.minecraft_launcher_lib._helper import empty
+from minecraft_launcher_lib._helper import empty
 
 # GITHUB = https://github.com/yushijinhun/authlib-injector/releases
 

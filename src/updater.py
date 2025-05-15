@@ -6,7 +6,7 @@ import logging
 import subprocess
 
 
-from .config import (
+from config import (
     LATEST_LAUNCHER_RELEASE_URL,
     LAUNCHER_VERSION,
     _COMPILED,

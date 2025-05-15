@@ -30,9 +30,6 @@ jobs:
           enable-cache: true
           activate-environment: true
 
-      - name: Install cosign
-        uses: sigstore/cosign-installer@v3.5.0
-
       - name: Install the project
         run: uv sync --all-extras --dev
 
@@ -40,22 +37,31 @@ jobs:
         run: |
           python update_version.py --dev
 
-      - name: Pack Flet app
+      - name: Pack Flet app (Linux)
+        if: runner.os == 'Linux'
         shell: bash
         run: |
-          flet pack \
-            --name cube-launcher \
-            --yes \
-            --add-data=assets:assets \
-            main.py 
+          flet build \
+          --compile-app \
+          --compile-packages \
+          --cleanup-app \
+          --cleanup-packages \
+          --no-rich-output \
+          linux
         working-directory: .
 
-      - name: Sign with cosign (keyless)
+      - name: Pack Flet app (Windows)
         if: runner.os == 'Windows'
-        env:
-          COSIGN_EXPERIMENTAL: "1"
+        shell: pwsh
         run: |
-          cosign sign-blob --yes --output-signature "dist/cube-launcher.exe.sig" "dist/cube-launcher.exe"
+          flet build \
+          --compile-app \
+          --compile-packages \
+          --cleanup-app \
+          --cleanup-packages \
+          --no-rich-output \
+          windows
+        working-directory: .
 
       - name: Sign Windows Executable
         if: runner.os == 'Windows'
@@ -63,24 +69,18 @@ jobs:
         with:
           certificate: '${{ secrets.CERTIFICATE }}'
           password: '${{ secrets.CERTIFICATE_PASSWORD }}'
-          folder: 'dist'
+          folder: 'build/windows'
           recursive: false
           files: |
-            cube-launcher.exe
-
-      - name: Attest build provenance
-        uses: actions/attest-build-provenance@v1
-        with:
-          subject-path: ./dist/*
+            cubedvij_launcher.exe
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ runner.os }}
           path: |
-            dist/cube-launcher.exe
-            dist/cube-launcher.exe.sig
-            dist/cube-launcher
+            build/linux/
+            build/windows/
           include-hidden-files: true
 
       - name: Minimize uv cache

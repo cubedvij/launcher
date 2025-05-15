@@ -1,7 +1,7 @@
 import flet as ft
 
-from ..settings import settings
-from ..config import RAM_SIZE, RAM_STEP
+from settings import settings
+from config import RAM_SIZE, RAM_STEP
 
 
 class SettingsPage(ft.View):

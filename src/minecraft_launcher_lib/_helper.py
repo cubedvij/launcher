@@ -80,7 +80,7 @@ def download_file(
                 callback.get("setMax", empty)(total)
                 len_chunk = 0
                 with open(path, "wb") as f:
-                    for chunk in r.iter_bytes(chunk_size=1024):
+                    for chunk in r.iter_bytes(chunk_size=8192):
                         f.write(chunk)
                         len_chunk += len(chunk)
                         callback.get("setProgress", empty)(len_chunk)

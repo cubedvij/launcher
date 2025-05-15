@@ -1,12 +1,18 @@
-import os
 import logging
 
 import flet as ft
 
-from src.updater import updater
-from src.auth import account
-from src.routes import LoginPage, MainPage, RegisterPage, ProfilePage, SettingsPage
-from src.config import WINDOW_SIZE, LAUNCHER_NAME, LAUNCHER_VERSION, _COMPILED, APPDATA_FOLDER, LAUNCHER_DIRECTORY
+from auth import account
+from config import (
+    _COMPILED,
+    APPDATA_FOLDER,
+    LAUNCHER_DIRECTORY,
+    LAUNCHER_NAME,
+    LAUNCHER_VERSION,
+    WINDOW_SIZE,
+)
+from routes import LoginPage, MainPage, ProfilePage, RegisterPage, SettingsPage
+from updater import updater
 
 if _COMPILED:
     logging.basicConfig(
@@ -32,13 +38,14 @@ else:
 logging.info(f"Launcher version: {LAUNCHER_VERSION}")
 logging.info(f"Launcher directory: {LAUNCHER_DIRECTORY}")
 
-def main(page: ft.Page):
+async def main(page: ft.Page):
     page.title = f"{LAUNCHER_NAME} {LAUNCHER_VERSION}"
     page.window.width, page.window.height = WINDOW_SIZE
-    # page.window.min_width, page.window.min_height = WINDOW_SIZE
-    # page.window.max_width, page.window.max_height = WINDOW_SIZE
     page.window.center()
-
+    
+    page.window.visible = True
+    page.update()
+    
     views = {
         "/": MainPage(page),
         "/login": LoginPage(page),
@@ -62,5 +69,5 @@ def main(page: ft.Page):
     else:
         page.go("/login")
         
-if __name__ == "__main__":
-    ft.app(main, assets_dir=os.path.join(os.path.dirname(__file__), "assets"))
+
+ft.app(main, view=ft.AppView.FLET_APP_HIDDEN)

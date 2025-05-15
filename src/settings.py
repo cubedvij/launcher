@@ -1,7 +1,7 @@
 import os
 import json
 
-from .config import RAM_SIZE, JVM_ARGS, MINECRAFT_FOLDER
+from config import RAM_SIZE, JVM_ARGS, MINECRAFT_FOLDER
 
 class Settings:
     def __init__(self):
