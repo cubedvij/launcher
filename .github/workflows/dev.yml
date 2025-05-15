@@ -54,13 +54,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          flet build `
-          --compile-app `
-          --compile-packages `
-          --cleanup-app `
-          --cleanup-packages `
-          --no-rich-output `
-          windows
+          flet build --compile-app --compile-packages --cleanup-app --cleanup-packages --no-rich-output windows
         working-directory: .
 
       - name: Sign Windows Executable
