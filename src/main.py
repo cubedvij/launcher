@@ -12,7 +12,6 @@ from config import (
     WINDOW_SIZE,
 )
 from routes import LoginPage, MainPage, ProfilePage, RegisterPage, SettingsPage
-from updater import updater
 
 if _COMPILED:
     logging.basicConfig(
@@ -24,8 +23,6 @@ if _COMPILED:
 
     )
     logging.getLogger("flet_core").setLevel(logging.INFO)
-    # HACK: remove old meipass folder
-    # updater.clear_old_meipass()
 else:
     logging.basicConfig(
         level=logging.INFO,

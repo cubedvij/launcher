@@ -11,7 +11,7 @@ class RegisterPage(ft.View):
         self.build_ui()
 
     def build_ui(self):
-        title = ft.Text("Реєстрація", size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE)
+        title = ft.Text("Реєстрація", size=24, weight=ft.FontWeight.BOLD)
         
         self.username = ft.TextField(label="Логін", width=300, max_length=16)
         self.password = ft.TextField(label="Пароль", password=True, can_reveal_password=True, width=300, max_length=32)

@@ -12,7 +12,7 @@ class LoginPage(ft.View):
 
     def build_ui(self):
         title = ft.Text(
-            "Авторизуватися", size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE
+            "Авторизуватися", size=24, weight=ft.FontWeight.BOLD,
         )
 
         self.username = ft.TextField(

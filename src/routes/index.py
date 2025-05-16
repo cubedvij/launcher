@@ -179,7 +179,7 @@ class MainPage(ft.View):
                                     src="github-mark.svg",
                                     width=20,
                                     height=20,
-                                    color=ft.Colors.SECONDARY,
+                                    color=ft.Colors.ON_SURFACE_VARIANT,
                                 ),
                                 on_click=lambda e: self._open_link(
                                     "https://github.com/cubedvij"
