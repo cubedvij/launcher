@@ -1,8 +1,10 @@
 import logging
+from turtle import up
 
 import flet as ft
 
 from auth import account
+from updater import updater
 from config import (
     _COMPILED,
     APPDATA_FOLDER,
@@ -23,6 +25,8 @@ if _COMPILED:
 
     )
     logging.getLogger("flet_core").setLevel(logging.INFO)
+    # HACK: Remove old MEIPASS folder
+    updater.clear_old_meipass()
 else:
     logging.basicConfig(
         level=logging.INFO,
