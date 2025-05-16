@@ -51,20 +51,29 @@ jobs:
         with:
           channel: stable
           flutter-version: 3.29.2
-          
-      - name: Install build dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3B4FE6ACC0B21F32
-          sudo apt-get update
-          sudo apt-get install -y curl squashfs-tools libfuse2 libgtk-3-dev
 
-      - name: Install appimage-builder
-        if: runner.os == 'Linux'
+      - name: Install dependencies
         run: |
-          curl -Lo appimage-builder https://github.com/AppImageCrafters/appimage-builder/releases/latest/download/appimage-builder-x86_64.AppImage
-          chmod +x appimage-builder
-          sudo mv appimage-builder /usr/local/bin/
+          sudo apt-get update
+          # Install runtime libs your app needs, from your apt list
+          sudo apt-get install -y \
+            libgtk-3-0 \
+            libwebkit2gtk-4.0-37 \
+            libnss3 \
+            libx11-6 \
+            libglib2.0-0 \
+            libxkbcommon0 \
+            libasound2 \
+            libgdk-pixbuf2.0-0 \
+            libxcomposite1 \
+            libxrandr2 \
+            libxdamage1 \
+            libxext6 \
+            libxfixes3 \
+            libxrender1 \
+            libxcb1 \
+            libfuse2 \
+            wget
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -92,6 +101,34 @@ jobs:
           --verbose \
           linux
         working-directory: .
+
+      - name: Prepare AppDir structure
+        run: |
+          rm -rf AppDir || true
+          mkdir -p AppDir/usr/cubedvij_launcher
+          mkdir -p AppDir/usr/share/icons/hicolor/64x64/apps
+          mkdir -p AppDir/usr/share/applications
+
+          # Copy your built app files
+          cp -r build/linux/* AppDir/usr/cubedvij_launcher/
+
+          # Copy icon
+          cp linux/logo.png AppDir/usr/share/icons/hicolor/64x64/apps/cubedvij-launcher.png
+
+          # Copy desktop file
+          cp linux/cubedvij_launcher.desktop AppDir/usr/share/applications/cubedvij_launcher.desktop
+
+          # Make sure your app executable is executable
+          chmod +x AppDir/usr/cubedvij_launcher/cubedvij_launcher
+
+      - name: Download appimagetool
+        run: |
+          wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+  
+      - name: Build AppImage
+        run: |
+          ./appimagetool-x86_64.AppImage AppDir
 
       - name: Build Flet app (Windows)
         if: runner.os == 'Windows'
