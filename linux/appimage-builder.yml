@@ -47,7 +47,6 @@ AppDir:
       - libxfixes3
       - libxrender1
       - libxcb1
-      - squashfs-tools
     exclude:
       - humanity-icon-theme
       - hicolor-icon-theme
