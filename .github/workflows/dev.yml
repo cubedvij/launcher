@@ -32,10 +32,18 @@ jobs:
       - name : Checkout code
         uses: actions/checkout@v4
 
-      - name: Cache Flutter dependencies
+      - name: Cache Flutter dependencies (Linux)
+        if: runner.os == 'Linux'
         uses: actions/cache@v4
         with:
           path: /opt/hostedtoolcache/flutter
+          key: ${{ runner.os }}-flutter
+
+      - name: Cache Flutter dependencies (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: C:\hostedtoolcache\windows\flutter
           key: ${{ runner.os }}-flutter
 
       - name: Set up Flutter
@@ -44,7 +52,7 @@ jobs:
           channel: stable
           flutter-version: 3.29.2
 
-      - name: Install dependencies
+      - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
