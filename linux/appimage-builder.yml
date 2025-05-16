@@ -5,9 +5,7 @@ script:
   - rm -rf AppDir || true
   - mkdir -p AppDir/usr/bin
   - cp -r build/linux/ AppDir/usr/cubedvij_launcher
-  - echo '#!/bin/bash' > AppDir/usr/bin/cubedvij-launcher
-  - echo 'DIR="$(dirname "$(readlink -f "$0")")"' >> AppDir/usr/bin/cubedvij-launcher
-  - echo '"$DIR/../cubedvij_launcher/cubedvij_launcher" "$@"' >> AppDir/usr/bin/cubedvij-launcher
+  - cp -r linux/cubedvij-launcher AppDir/usr/bin/cubedvij-launcher
   - chmod +x AppDir/usr/bin/cubedvij-launcher
   - mkdir -p AppDir/usr/share/applications
   - cp ./linux/cubedvij_launcher.desktop AppDir/usr/share/applications/cubedvij_launcher.desktop
