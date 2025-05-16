@@ -170,8 +170,8 @@ jobs:
         with:
           name: ${{ runner.os }}
           path: |
-            *.AppImage
-            *.AppImage.zsync
+            CubeDvij_Launcher-x86_64.AppImage
+            CubeDvij_Launcher-x86_64.AppImage.zsync
             build/windows/
           compression-level: 9
           include-hidden-files: true
