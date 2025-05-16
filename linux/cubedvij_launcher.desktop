@@ -1,9 +1,8 @@
 [Desktop Entry]
-Version=1.2.0
 Name=CubeDvij Launcher
 Comment=Custom Minecraft server launcher
 Exec=cubedvij-launcher
 Terminal=false
 Type=Application
-Categories=Game;Utility;
+Categories=Game;
 StartupNotify=true
