@@ -53,6 +53,7 @@ jobs:
           flutter-version: 3.29.2
 
       - name: Install dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -102,6 +103,7 @@ jobs:
         working-directory: .
 
       - name: Prepare AppDir structure
+        if: runner.os == 'Linux'
         run: |
           rm -rf AppDir || true
           mkdir -p AppDir/usr/cubedvij_launcher
@@ -121,11 +123,13 @@ jobs:
           chmod +x AppDir/usr/cubedvij_launcher/cubedvij_launcher
 
       - name: Download appimagetool
+        if: runner.os == 'Linux'
         run: |
           wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool-x86_64.AppImage
 
       - name: Build AppImage
+        if: runner.os == 'Linux'
         run: |
           ./appimagetool-x86_64.AppImage AppDir
 
