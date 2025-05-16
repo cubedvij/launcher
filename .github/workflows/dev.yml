@@ -116,10 +116,11 @@ jobs:
           # Copy icon
           cp linux/logo.png AppDir/usr/share/icons/hicolor/64x64/apps/cubedvij-launcher.png
 
-          # Copy desktop file
-          cp linux/cubedvij_launcher.desktop AppDir/usr/share/applications/cubedvij_launcher.desktop
+          # Copy desktop file to both required locations
+          cp linux/cubedvij_launcher.desktop AppDir/
+          cp linux/cubedvij_launcher.desktop AppDir/usr/share/applications/
 
-          # Make sure your app executable is executable
+          # Ensure executable permission
           chmod +x AppDir/usr/cubedvij_launcher/cubedvij_launcher
 
       - name: Download appimagetool
@@ -169,7 +170,8 @@ jobs:
         with:
           name: ${{ runner.os }}
           path: |
-            build/linux/FletApp-x86_64.AppImage
+            *.AppImage
+            *.AppImage.zsync
             build/windows/
           compression-level: 9
           include-hidden-files: true
