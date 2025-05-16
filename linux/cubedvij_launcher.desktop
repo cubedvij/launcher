@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=CubeDvij Launcher
-Comment=Custom Minecraft server launcher
-Exec=cubedvij-launcher
-Icon=cubedvij-launcher
-Terminal=false
-Type=Application
-Categories=Game;
-StartupNotify=true

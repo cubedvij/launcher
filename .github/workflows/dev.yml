@@ -52,28 +52,12 @@ jobs:
           channel: stable
           flutter-version: 3.29.2
 
-      - name: Install dependencies
+      - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libgtk-3-0 \
-            libgtk-3-dev \
-            libnss3 \
-            libx11-6 \
-            libglib2.0-0 \
-            libxkbcommon0 \
-            libasound2t64 \
-            libgdk-pixbuf2.0-0 \
-            libxcomposite1 \
-            libxrandr2 \
-            libxdamage1 \
-            libxext6 \
-            libxfixes3 \
-            libxrender1 \
-            libxcb1 \
-            libfuse2 \
-            wget
+          sudo apt-get update -y
+          sudo apt-get install -y libgtk-3-dev
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -88,7 +72,7 @@ jobs:
         run: |
           python update_version.py --dev
 
-      - name: Build Flet app (Linux)
+      - name: Pack Flet app (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
@@ -102,45 +86,7 @@ jobs:
           linux
         working-directory: .
 
-      - name: Prepare AppDir structure
-        if: runner.os == 'Linux'
-        run: |
-          rm -rf AppDir || true
-          mkdir -p AppDir/usr/cubedvij_launcher
-          mkdir -p AppDir/usr/share/icons/hicolor/64x64/apps
-          mkdir -p AppDir/usr/share/applications
-
-          # Copy your built app files
-          cp -r build/linux/* AppDir/usr/cubedvij_launcher/
-
-          # Ensure the main executable exists and is named correctly
-          if [ ! -f AppDir/usr/cubedvij_launcher/cubedvij_launcher ]; then
-            echo "Error: Main executable 'cubedvij_launcher' not found in AppDir/usr/cubedvij_launcher/"
-            ls -l AppDir/usr/cubedvij_launcher/
-            exit 1
-          fi
-
-          # Copy icon (64x64)
-          cp linux/logo.png AppDir/usr/share/icons/hicolor/64x64/apps/cubedvij-launcher.png
-          # Also copy icon to AppDir root as required by AppImage
-          cp linux/logo.png AppDir/cubedvij-launcher.png
-
-          # Copy desktop file to both required locations
-          cp linux/cubedvij_launcher.desktop AppDir/
-          cp linux/cubedvij_launcher.desktop AppDir/usr/share/applications/
-
-          # Ensure executable permission and correct interpreter
-          chmod +x AppDir/usr/cubedvij_launcher/cubedvij_launcher
-          file AppDir/usr/cubedvij_launcher/cubedvij_launcher
-          ldd AppDir/usr/cubedvij_launcher/cubedvij_launcher || true
-
-      - name: Download appimagetool
-        if: runner.os == 'Linux'
-        run: |
-          wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-          chmod +x appimagetool-x86_64.AppImage
-
-      - name: Build Flet app (Windows)
+      - name: Pack Flet app (Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
@@ -164,18 +110,12 @@ jobs:
           files: |
             build/windows/cubedvij_launcher.exe
 
-      - name: Build AppImage
-        if: runner.os == 'Linux'
-        run: |
-          ./appimagetool-x86_64.AppImage AppDir
-
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ runner.os }}
           path: |
-            CubeDvij_Launcher-x86_64.AppImage
-            CubeDvij_Launcher-x86_64.AppImage.zsync
+            build/linux/
             build/windows/
           compression-level: 9
           include-hidden-files: true
