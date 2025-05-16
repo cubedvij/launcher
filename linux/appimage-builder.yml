@@ -5,9 +5,9 @@ script:
   - rm -rf AppDir || true
   - mkdir -p AppDir/usr/bin
   - cp -r build/linux/ AppDir/usr/cubedvij_launcher
-  - cp -r linux/cubedvij-launcher AppDir/usr/bin/cubedvij-launcher
-  - chmod +x AppDir/usr/bin/cubedvij-launcher
-  - ln -sf usr/bin/cubedvij-launcher AppDir/cubedvij-launcher
+  # - cp -r linux/cubedvij-launcher AppDir/usr/bin/cubedvij-launcher
+  # - chmod +x AppDir/usr/bin/cubedvij-launcher
+  # - ln -sf usr/bin/cubedvij-launcher AppDir/cubedvij-launcher
   - mkdir -p AppDir/usr/share/applications
   - cp ./linux/cubedvij_launcher.desktop AppDir/usr/share/applications/cubedvij_launcher.desktop
 
@@ -17,7 +17,7 @@ AppDir:
     id: ua.aos.cubedvij-launcher
     name: CubeDvij Launcher
     version: 1.2.0
-    exec: cubedvij-launcher
+    exec: usr/cubedvij_launcher/cubedvij_launcher
     exec_args: $@
   apt:
     arch: amd64
