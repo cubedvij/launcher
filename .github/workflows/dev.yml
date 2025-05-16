@@ -72,7 +72,7 @@ jobs:
         run: |
           python update_version.py --dev
 
-      - name: Pack Flet app (Linux)
+      - name: Build Flet app (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
@@ -86,7 +86,7 @@ jobs:
           linux
         working-directory: .
 
-      - name: Pack Flet app (Windows)
+      - name: Build Flet app (Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
@@ -110,12 +110,20 @@ jobs:
           files: |
             build/windows/cubedvij_launcher.exe
 
+      - name: Build AppImage (Linux)
+        if: runner.os == 'Linux'
+        uses: AppImageCrafters/build-appimage@master
+        with:
+          recipe: "./linux/appimage-builder.yml"
+        env:
+          UPDATE_INFO: gh-releases-zsync|AOS|CubeDvij-Launcher|latest|*x86_64.AppImage.zsync
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ runner.os }}
           path: |
-            build/linux/
+            build/linux/FletApp-x86_64.AppImage
             build/windows/
           compression-level: 9
           include-hidden-files: true

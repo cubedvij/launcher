@@ -31,6 +31,7 @@ path = "src"
 
 [tool.uv]
 dev-dependencies = [
+    "appimage-builder>=1.1.0",
     "flet[all]==0.28.1",
 ]
 

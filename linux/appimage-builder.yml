@@ -1,0 +1,55 @@
+version: 1
+
+script:
+  - rm -rf AppDir || true
+  - mkdir -p AppDir/usr/bin
+  - cp -r dist/linux/ AppDir/usr/cubedvij_launcher
+  - echo '#!/bin/bash' > AppDir/usr/bin/cubedvij-launcher
+  - echo 'DIR="$(dirname "$(readlink -f "$0")")"' >> AppDir/usr/bin/cubedvij-launcher
+  - echo '"$DIR/../cubedvij_launcher/cubedvij_launcher" "$@"' >> AppDir/usr/bin/cubedvij-launcher
+  - chmod +x AppDir/usr/bin/cubedvij-launcher
+  - cp ./linux/cubedvij_launcher.desktop AppDir/usr/share/applications/cubedvij_launcher.desktop
+
+  # Optional icon setup (uncomment if needed)
+  # - mkdir -p AppDir/usr/share/icons/hicolor/64x64/apps/
+  # - cp flutter-mark-square-64.png AppDir/usr/share/icons/hicolor/64x64/apps/flutter-mark-square-64.png
+
+AppDir:
+  path: ./AppDir
+  app_info:
+    id: ua.aos.cubedvij-launcher
+    name: CubeDvij Launcher
+    version: 1.2.0
+    exec: usr/bin/cubedvij-launcher
+    exec_args: $@
+    # icon: flutter-mark-square-64  # uncomment if you add an icon
+
+  apt:
+    arch: amd64
+    sources:
+      - sourceline: deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main universe
+    include:
+      - libglib2.0-0
+      - libx11-6
+      - libgtk-3-0
+      - libwebkit2gtk-4.0-37
+      - libgdk-pixbuf2.0-0
+      - libnss3
+      - libasound2
+      - libxcomposite1
+      - libxrandr2
+      - libxdamage1
+      - libxext6
+      - libxfixes3
+      - libxrender1
+      - libxkbcommon0
+      - libxcb1
+
+  files:
+    include: []
+    exclude: []
+
+AppImage:
+  arch: x86_64
+  update-information: "gh-releases-zsync|youruser|yourrepo|latest|CubeDvijLauncher-x86_64.AppImage.zsync"
+  sign-key: ""
