@@ -8,6 +8,9 @@ script:
   # - cp -r linux/cubedvij-launcher AppDir/usr/bin/cubedvij-launcher
   # - chmod +x AppDir/usr/bin/cubedvij-launcher
   # - ln -sf usr/bin/cubedvij-launcher AppDir/cubedvij-launcher
+  # copy the icon AppDir/usr/share/icons/hicolor/64x64/apps/<icon>.png
+  - mkdir -p AppDir/usr/share/icons/hicolor/64x64/apps
+  - cp ./linux/logo.png AppDir/usr/share/icons/hicolor/64x64/apps/cubedvij_launcher.png
   - mkdir -p AppDir/usr/share/applications
   - cp ./linux/cubedvij_launcher.desktop AppDir/usr/share/applications/cubedvij_launcher.desktop
 
@@ -17,6 +20,7 @@ AppDir:
     id: ua.aos.cubedvij-launcher
     name: CubeDvij Launcher
     version: 1.2.0
+    icon: cubedvij-launcher
     exec: usr/cubedvij_launcher/cubedvij_launcher
     exec_args: $@
   apt:
