@@ -72,32 +72,14 @@ jobs:
         run: |
           python update_version.py --dev
 
-      - name: Pack Flet app (Linux)
-        if: runner.os == 'Linux'
+      - name: Pack Flet app
         shell: bash
         run: |
-          flet build \
-          --compile-app \
-          --compile-packages \
-          --cleanup-app \
-          --cleanup-packages \
-          --no-rich-output \
-          --verbose \
-          linux
-        working-directory: .
-
-      - name: Pack Flet app (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          flet build \
-          --compile-app \
-          --compile-packages \
-          --cleanup-app \
-          --cleanup-packages \
-          --no-rich-output \
-          --verbose \
-          windows 
+          flet pack \
+            --name cube-launcher \
+            --yes \
+            --add-data=assets:assets \
+            main.py 
         working-directory: .
 
       - name: Sign Windows Executable
