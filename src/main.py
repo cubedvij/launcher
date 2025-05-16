@@ -25,7 +25,7 @@ if _COMPILED:
     )
     logging.getLogger("flet_core").setLevel(logging.INFO)
     # HACK: remove old meipass folder
-    updater.clear_old_meipass()
+    # updater.clear_old_meipass()
 else:
     logging.basicConfig(
         level=logging.INFO,
@@ -41,9 +41,11 @@ logging.info(f"Launcher directory: {LAUNCHER_DIRECTORY}")
 async def main(page: ft.Page):
     page.title = f"{LAUNCHER_NAME} {LAUNCHER_VERSION}"
     page.window.width, page.window.height = WINDOW_SIZE
+    page.window.min_width, page.window.min_height = WINDOW_SIZE
     page.window.center()
     
     page.window.visible = True
+    page.window.prevent_close = False
     page.update()
     
     views = {

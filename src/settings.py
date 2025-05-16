@@ -45,7 +45,23 @@ class Settings:
         }
         with open(self._settings_file, "w") as f:
             json.dump(data, f)
-            
+        self._set_fullscreen()
+
+    def _set_fullscreen(self):
+        # Set the Minecraft options to fullscreen
+        if not os.path.exists(self._minecraft_options):
+            # Create the file with the fullscreen option if it doesn't exist
+            with open(self._minecraft_options, "w") as f:
+                f.write(f"fullscreen:{str(self.fullscreen).lower()}\n")
+            return
+
+        with open(self._minecraft_options, "r") as f:
+            lines = f.readlines()
+
+        with open(self._minecraft_options, "w") as f:
+            for line in lines:
+                if line.startswith("fullscreen:"):
+                    f.write(f"fullscreen:{str(self.fullscreen).lower()}\n")
 
 settings = Settings()
 settings.load()

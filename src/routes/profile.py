@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import flet as ft
 
@@ -13,12 +14,14 @@ class ProfilePage(ft.View):
         self.build_ui()
 
     async def update_user_info(self, event: ft.RouteChangeEvent):
-        await account.render_skin()
-        self._list_tile.title.value = account.user["user"]["players"][0]["name"]
-        self._list_tile.subtitle.value = account.user["user"]["players"][0]["uuid"]
-        self._skin_types.value = account.user["user"]["players"][0]["skinModel"]
-        self.update_skin()
-        event.page.update()
+        if self.page is not None:
+            await account.render_skin()
+            self._list_tile.title.value = account.user["user"]["players"][0]["name"]
+            self._list_tile.subtitle.value = account.user["user"]["players"][0]["uuid"]
+            self._skin_types.value = account.user["user"]["players"][0]["skinModel"]
+            await asyncio.to_thread(
+                self.update_skin,
+            )
 
     def build_ui(self):
         self._skin_file_picker = ft.FilePicker(on_result=self.on_upload_skin)

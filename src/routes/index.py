@@ -7,7 +7,7 @@ import httpx
 import flet as ft
 import minecraft_launcher_lib as mcl
 
-from mcstatus import JavaServer
+from minestat import MineStat, SlpProtocols
 
 from auth import account
 from modpack import modpack
@@ -90,7 +90,7 @@ class MainPage(ft.View):
         self.page.update()
         self.kill_app()
         logging.info("Launcher exited.")
-    
+
     def kill_app(self):
         logging.info("Trying to exit program via asyncio")
         to_cancel = asyncio.all_tasks(self.page.loop)
@@ -99,7 +99,7 @@ class MainPage(ft.View):
         logging.info(f"Canceling {len(to_cancel)} tasks")
         for task in to_cancel:
             task.cancel()
-            
+
     def build_ui(self):
         changelog_text = httpx.get(
             CHANGELOG_URL,
@@ -123,8 +123,7 @@ class MainPage(ft.View):
         )
         self._changelog = ft.Markdown(
             value=changelog_text,
-            selectable=True,
-            fit_content=False,
+            auto_follow_links=True,
             extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
         )
         self._appbar = ft.AppBar(
@@ -357,34 +356,34 @@ class MainPage(ft.View):
     async def _server_status_update(self):
         while True:
             try:
-                await self._update_server_status()
+                await asyncio.to_thread(self._update_server_status)
                 await asyncio.sleep(10)
             except Exception as e:
                 logging.info(f"Error updating server status: {e}")
                 await asyncio.sleep(10)
 
-    async def _update_server_status(self):
-        self._minecraft_server = JavaServer(
-            host=SERVER_IP,
-            port=25565,
-        )
+    def _update_server_status(self):
         try:
-            server_status = await self._minecraft_server.async_status()
-            players_online = server_status.players.online
-        except Exception:
-            server_status = False
-            players_online = 0
+            server = MineStat(
+                address=SERVER_IP, port=25565, query_protocol=SlpProtocols.LEGACY
+            )
+            online = server.online
+            players = server.current_players if online else 0
+        except Exception as e:
+            logging.warning(f"Failed to fetch server status: {e}")
+            online = False
+            players = 0
 
-        if server_status:
+        if online:
             self._server_status.controls[0].controls[0].color = ft.Colors.GREEN
             self._server_status.controls[0].controls[1].value = "Сервер онлайн"
-            self._server_status.controls[1].controls[2].value = str(players_online)
+            self._server_status.controls[1].controls[2].value = str(players)
         else:
             self._server_status.controls[0].controls[0].color = ft.Colors.RED
             self._server_status.controls[0].controls[1].value = "Сервер офлайн"
             self._server_status.controls[1].controls[2].value = "0"
 
-        if self.page is not None:
+        if self.page:
             self.page.update()
 
     def _check_game(self, event: ft.TapEvent):
@@ -437,12 +436,14 @@ class MainPage(ft.View):
         # change working directory to .minecraft
         os.chdir(MINECRAFT_FOLDER)
         if SYSTEM_OS == "Windows":
-            self._minecraft_process = subprocess.Popen(minecraft_command,
+            self._minecraft_process = subprocess.Popen(
+                minecraft_command,
                 creationflags=subprocess.CREATE_NO_WINDOW,
                 start_new_session=True,
             )
         elif SYSTEM_OS == "Linux":
-            self._minecraft_process = subprocess.Popen(minecraft_command,
+            self._minecraft_process = subprocess.Popen(
+                minecraft_command,
                 start_new_session=True,
             )
         self.page.run_task(self._check_minecraft)
@@ -476,7 +477,7 @@ class MainPage(ft.View):
             self._play_button_enable()
             self._check_game_button_enable()
             return
-        
+
         logging.info("authlib-injector downloaded successfully.")
         self._set_progress_text("authlib-injector встановлено")
 
@@ -493,7 +494,7 @@ class MainPage(ft.View):
             self._play_button_enable()
             self._check_game_button_enable()
             return
-        
+
         logging.info("Modpack installed successfully.")
         self._set_progress_text("Модпак встановлено")
 

@@ -11,5 +11,5 @@ else:
     print("Unknown argument, use --release or --dev")
     sys.exit(1)
 print("Building with new version number", new_version)
-with open("_version.py", "w") as f:
+with open("./src/_version.py", "w") as f:
     f.write(f'version = "{new_version}"\n')

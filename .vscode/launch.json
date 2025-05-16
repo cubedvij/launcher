@@ -11,6 +11,8 @@
             "program": "${workspaceFolder}/.venv/bin/flet",
             "args": [
                 "run",
+                "-d",
+                "-r"
             ],
             "console": "integratedTerminal"
         }
