@@ -9,7 +9,7 @@ script:
   - echo '"$DIR/../cubedvij_launcher/cubedvij_launcher" "$@"' >> AppDir/usr/bin/cubedvij-launcher
   - chmod +x AppDir/usr/bin/cubedvij-launcher
   - mkdir -p AppDir/usr/share/applications
-  - cp cubedvij_launcher.desktop AppDir/usr/share/applications/cubedvij_launcher.desktop
+  - cp linux/cubedvij_launcher.desktop AppDir/usr/share/applications/cubedvij_launcher.desktop
 
   # Optional icon setup (uncomment if needed)
   # - mkdir -p AppDir/usr/share/icons/hicolor/64x64/apps/
