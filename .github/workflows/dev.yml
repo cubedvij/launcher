@@ -113,6 +113,13 @@ jobs:
           # Copy your built app files
           cp -r build/linux/* AppDir/usr/cubedvij_launcher/
 
+          # Ensure the main executable exists and is named correctly
+          if [ ! -f AppDir/usr/cubedvij_launcher/cubedvij_launcher ]; then
+            echo "Error: Main executable 'cubedvij_launcher' not found in AppDir/usr/cubedvij_launcher/"
+            ls -l AppDir/usr/cubedvij_launcher/
+            exit 1
+          fi
+
           # Copy icon (64x64)
           cp linux/logo.png AppDir/usr/share/icons/hicolor/64x64/apps/cubedvij-launcher.png
           # Also copy icon to AppDir root as required by AppImage
@@ -122,8 +129,10 @@ jobs:
           cp linux/cubedvij_launcher.desktop AppDir/
           cp linux/cubedvij_launcher.desktop AppDir/usr/share/applications/
 
-          # Ensure executable permission
+          # Ensure executable permission and correct interpreter
           chmod +x AppDir/usr/cubedvij_launcher/cubedvij_launcher
+          file AppDir/usr/cubedvij_launcher/cubedvij_launcher
+          ldd AppDir/usr/cubedvij_launcher/cubedvij_launcher || true
 
       - name: Download appimagetool
         if: runner.os == 'Linux'
