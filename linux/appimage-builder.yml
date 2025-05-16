@@ -3,7 +3,7 @@ version: 1
 script:
   - rm -rf AppDir || true
   - mkdir -p AppDir/usr/bin
-  - cp -r dist/linux/ AppDir/usr/cubedvij_launcher
+  - cp -r build/linux/ AppDir/usr/cubedvij_launcher
   - echo '#!/bin/bash' > AppDir/usr/bin/cubedvij-launcher
   - echo 'DIR="$(dirname "$(readlink -f "$0")")"' >> AppDir/usr/bin/cubedvij-launcher
   - echo '"$DIR/../cubedvij_launcher/cubedvij_launcher" "$@"' >> AppDir/usr/bin/cubedvij-launcher
