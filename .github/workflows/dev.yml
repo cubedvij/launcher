@@ -90,15 +90,15 @@ jobs:
           password: '${{ secrets.CERTIFICATE_PASSWORD }}'
           recursive: false
           files: |
-            dist/cubedvij_launcher.exe
+            dist/cube-launcher.exe
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ runner.os }}
           path: |
-            dist/cubedvij_launcher
-            dist/cubedvij_launcher.exe
+            dist/cube-launcher
+            dist/cube-launcher.exe
           compression-level: 9
           include-hidden-files: true
 
