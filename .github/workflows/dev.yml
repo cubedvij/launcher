@@ -113,8 +113,10 @@ jobs:
           # Copy your built app files
           cp -r build/linux/* AppDir/usr/cubedvij_launcher/
 
-          # Copy icon
+          # Copy icon (64x64)
           cp linux/logo.png AppDir/usr/share/icons/hicolor/64x64/apps/cubedvij-launcher.png
+          # Also copy icon to AppDir root as required by AppImage
+          cp linux/logo.png AppDir/cubedvij-launcher.png
 
           # Copy desktop file to both required locations
           cp linux/cubedvij_launcher.desktop AppDir/
