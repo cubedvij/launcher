@@ -79,7 +79,7 @@ jobs:
             --name cube-launcher \
             --yes \
             --add-data=assets:assets \
-            main.py 
+            ./src/main.py 
         working-directory: .
 
       - name: Sign Windows Executable

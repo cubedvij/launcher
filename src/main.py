@@ -1,5 +1,4 @@
 import logging
-from turtle import up
 
 import flet as ft
 
