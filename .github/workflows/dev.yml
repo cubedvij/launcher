@@ -131,11 +131,6 @@ jobs:
           wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool-x86_64.AppImage
 
-      - name: Build AppImage
-        if: runner.os == 'Linux'
-        run: |
-          ./appimagetool-x86_64.AppImage AppDir
-
       - name: Build Flet app (Windows)
         if: runner.os == 'Windows'
         shell: bash
@@ -160,12 +155,10 @@ jobs:
           files: |
             build/windows/cubedvij_launcher.exe
 
-      - name: Build AppImage (Linux)
+      - name: Build AppImage
         if: runner.os == 'Linux'
-        env:
-          UPDATE_INFO: gh-releases-zsync|AOS|CubeDvij-Launcher|latest|*x86_64.AppImage.zsync
         run: |
-          appimage-builder --recipe ./linux/appimage-builder.yml
+          ./appimagetool-x86_64.AppImage AppDir
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
