@@ -78,7 +78,7 @@ jobs:
           flet pack \
             --name cube-launcher \
             --yes \
-            --add-data=assets:assets \
+            --add-data=src/assets:assets \
             ./src/main.py 
         working-directory: .
 

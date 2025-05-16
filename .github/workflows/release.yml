@@ -45,7 +45,7 @@ jobs:
           flet pack \
             --name cube-launcher \
             --yes \
-            --add-data=assets:assets \
+            --add-data=src/assets:assets \
             ./src/main.py 
         working-directory: .
 
@@ -55,7 +55,7 @@ jobs:
           COSIGN_EXPERIMENTAL: "1"
         run: |
           cosign sign-blob --yes --output-signature "dist/cube-launcher.exe.sig" "dist/cube-launcher.exe"
-      
+
       - name: Sign Windows Executable
         if: runner.os == 'Windows'
         uses: dlemstra/code-sign-action@v1
