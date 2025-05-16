@@ -7,6 +7,7 @@ script:
   - cp -r build/linux/ AppDir/usr/cubedvij_launcher
   - cp -r linux/cubedvij-launcher AppDir/usr/bin/cubedvij-launcher
   - chmod +x AppDir/usr/bin/cubedvij-launcher
+  - ln -sf usr/bin/cubedvij-launcher AppDir/cubedvij-launcher
   - mkdir -p AppDir/usr/share/applications
   - cp ./linux/cubedvij_launcher.desktop AppDir/usr/share/applications/cubedvij_launcher.desktop
 
