@@ -9,13 +9,14 @@ import minecraft_launcher_lib as mcl
 
 from minestat import MineStat, SlpProtocols
 
+from utils import Shimmer
 from auth import account
 from modpack import modpack
 from authlib import authlib
 from updater import updater
 from config import (
+    APPDATA_FOLDER,
     AUTHLIB_INJECTOR_URL,
-    MINECRAFT_FOLDER,
     SERVER_IP,
     SKINS_CACHE_FOLDER,
     LAUNCHER_DIRECTORY,
@@ -59,12 +60,13 @@ class MainPage(ft.View):
             size=20,
             weight=ft.FontWeight.BOLD,
         )
-        event.page.views[
-            0
-        ].pagelet.appbar.leading.content.src = (
-            f"{SKINS_CACHE_FOLDER}/{account.skin_hash}-face.png"
+        event.page.views[0].pagelet.appbar.leading.content = ft.Image(
+            src=f"{SKINS_CACHE_FOLDER}/{account.skin_hash}-face.png",
+            filter_quality=ft.FilterQuality.NONE,
+            fit=ft.ImageFit.CONTAIN,
+            width=64,
+            height=64,
         )
-        event.page.update()
 
     async def create_user_info(self):
         await account.render_skin()
@@ -106,7 +108,15 @@ class MainPage(ft.View):
             timeout=5,
             follow_redirects=True,
         ).text
-        self._changelog.value = changelog_text
+        self._changelog = ft.Markdown(
+            value=changelog_text,
+            auto_follow_links=True,
+            extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
+        )
+        # remove all
+        self.pagelet.content.content.controls.clear()
+        # add new _changelog
+        self.pagelet.content.content.controls.append(self._changelog)
 
     def build_ui(self):
         self._update_banner = ft.Banner(
@@ -126,26 +136,34 @@ class MainPage(ft.View):
                 ),
             ],
         )
-        self._changelog = ft.Markdown(
-            value="",
-            auto_follow_links=True,
-            extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
+        self._changelog = Shimmer(
+            control=ft.Column(
+                controls=[
+                    ft.Text(
+                        "Завантаження чейнджлогу...",
+                        size=20,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                ]
+            ),
         )
         self._appbar = ft.AppBar(
             toolbar_height=64,
             leading_width=64,
             bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
-            title=ft.Text(
-                "Вітаю, користувачу!",
-                size=20,
-                weight=ft.FontWeight.BOLD,
+            title=Shimmer(
+                control=ft.Text(
+                    "Завантаження...",
+                    size=20,
+                    weight=ft.FontWeight.BOLD,
+                ),
+                color=ft.Colors.SURFACE_CONTAINER_HIGHEST,     
             ),
             leading=ft.IconButton(
                 padding=ft.Padding(12, 12, 12, 12),
-                content=ft.Image(
-                    src=None,
-                    filter_quality=ft.FilterQuality.NONE,
-                    fit=ft.ImageFit.CONTAIN,
+                content=Shimmer(
+                    control=ft.Icon(ft.Icons.PERSON, size=32),
+                    color=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                     width=64,
                     height=64,
                 ),
@@ -251,7 +269,7 @@ class MainPage(ft.View):
             bgcolor=ft.Colors.SECONDARY_CONTAINER,
             shape=ft.RoundedRectangleBorder(radius=8),
             tooltip="Відкрити папку з грою",
-            on_click=lambda e: self._open_link(f"file://{MINECRAFT_FOLDER}"),
+            on_click=lambda e: self._open_link(f"file://{APPDATA_FOLDER}"),
         )
         self.floating_action_button = ft.Container(
             ft.Row(
@@ -395,7 +413,7 @@ class MainPage(ft.View):
     def _check_game(self, event: ft.TapEvent):
         logging.info("Checking game...")
         # check if game is installed
-        installed_versions = mcl.utils.get_installed_versions(MINECRAFT_FOLDER)
+        installed_versions = mcl.utils.get_installed_versions(settings.minecraft_directory)
         installed_versions_list = []
         for version in installed_versions:
             installed_versions_list.append(version["id"])
@@ -431,16 +449,16 @@ class MainPage(ft.View):
             "resolutionHeight": str(settings.window_height),
         }
         options["jvmArguments"] = [
-            f"-javaagent:{MINECRAFT_FOLDER}/authlib-injector.jar={AUTHLIB_INJECTOR_URL}",
+            f"-javaagent:{settings.minecraft_directory}/authlib-injector.jar={AUTHLIB_INJECTOR_URL}",
             f"-Xmx{settings.max_use_ram}M",
             f"-Xms{settings.min_use_ram}M",
             *settings.java_args,
         ]
         minecraft_command = mcl.command.get_minecraft_command(
-            version, MINECRAFT_FOLDER, options
+            version, settings.minecraft_directory, options
         )
         # change working directory to .minecraft
-        os.chdir(MINECRAFT_FOLDER)
+        os.chdir(settings.minecraft_directory)
         if SYSTEM_OS == "Windows":
             self._minecraft_process = subprocess.Popen(
                 minecraft_command,
@@ -473,7 +491,7 @@ class MainPage(ft.View):
 
         self._set_progress_text("Встановлення authlib-injector...")
         if not authlib.download_latest_release(
-            f"{MINECRAFT_FOLDER}/authlib-injector.jar",
+            f"{settings.minecraft_directory}/authlib-injector.jar",
             self._download_callback,
         ):
             logging.error("Failed to download authlib-injector.")
@@ -490,7 +508,7 @@ class MainPage(ft.View):
         # install modpack
         self._set_progress_text("Встановлення модпаку...")
         if not modpack.install(
-            MINECRAFT_FOLDER,
+            settings.minecraft_directory,
             self._download_callback,
         ):
             logging.error("Failed to install modpack.")

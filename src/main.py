@@ -44,6 +44,13 @@ async def main(page: ft.Page):
     page.window.min_width, page.window.min_height = WINDOW_SIZE
     page.window.center()
 
+    page.theme = ft.Theme(
+        color_scheme_seed=ft.Colors.DEEP_PURPLE,
+        page_transitions=ft.PageTransitionsTheme(
+            linux=ft.PageTransitionTheme.FADE_FORWARDS,
+            windows=ft.PageTransitionTheme.FADE_FORWARDS
+        )
+    )
     page.window.visible = True
     page.window.prevent_close = False
 
@@ -71,6 +78,6 @@ async def main(page: ft.Page):
         page.go("/")
     else:
         page.go("/login")
-        
+
 if __name__ == "__main__":
     ft.app(target=main, view=ft.AppView.FLET_APP_HIDDEN)

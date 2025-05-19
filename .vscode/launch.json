@@ -12,6 +12,7 @@
             "args": [
                 "run",
                 "-d",
+                "-r"
             ],
             "console": "integratedTerminal"
         }

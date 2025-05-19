@@ -2,6 +2,7 @@ import asyncio
 import base64
 import flet as ft
 
+from utils import Shimmer
 from auth import account
 from config import SKINS_CACHE_FOLDER
 
@@ -35,7 +36,7 @@ class ProfilePage(ft.View):
                 ft.TextButton("Ні", on_click=self.close_alert),
             ],
         )
-        self._snack_bar = ft.SnackBar(ft.Text("..."))
+        self._snack_bar = ft.SnackBar(Shimmer(control=ft.Text(), auto_generate=True))
         self._appbar = ft.AppBar(
             leading=ft.IconButton(
                 icon=ft.Icons.ARROW_BACK,

@@ -10,7 +10,8 @@ from typing import Callable, Dict, Optional, Tuple
 
 import httpx
 
-from config import APPDATA_FOLDER, MINECRAFT_FOLDER, MODPACK_REPO_URL
+from config import APPDATA_FOLDER, MODPACK_REPO_URL
+from settings import settings
 from minecraft_launcher_lib._helper import (
     check_path_inside_minecraft_directory,
     download_file,
@@ -351,7 +352,7 @@ class Modpack:
         }
         self.install_mrpack(
             self._modpack_file,
-            MINECRAFT_FOLDER,
+            settings.minecraft_directory,
             callback=callback,
             mrpack_install_options=options,
         )
@@ -370,7 +371,7 @@ class Modpack:
 
     def _clean_old_mods(self) -> None:
         """Remove mods that are no longer needed."""
-        mods_dir = MINECRAFT_FOLDER / "mods"
+        mods_dir = settings.minecraft_directory / "mods"
         if mods_dir.exists():
             for mod in mods_dir.iterdir():
                 if mod.is_file() and mod.suffix == ".jar":
@@ -382,7 +383,7 @@ class Modpack:
     def verify_installation(self) -> bool:
         """Verify that all modpack files are correctly installed."""
         for file in self._modpack_info.get("files", []):
-            file_path = MINECRAFT_FOLDER / file["path"]
+            file_path = settings.minecraft_directory / file["path"]
 
             # Check file existence
             if (

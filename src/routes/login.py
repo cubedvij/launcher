@@ -12,7 +12,9 @@ class LoginPage(ft.View):
 
     def build_ui(self):
         title = ft.Text(
-            "Авторизуватися", size=24, weight=ft.FontWeight.BOLD,
+            "Авторизуватися",
+            size=24,
+            weight=ft.FontWeight.BOLD,
         )
 
         self.username = ft.TextField(
@@ -26,10 +28,18 @@ class LoginPage(ft.View):
             on_submit=self.login,
         )
 
-        login_button = ft.ElevatedButton("Увійти", on_click=self.login, width=300)
+        login_button = ft.ElevatedButton(
+            "Увійти",
+            icon=ft.Icons.LOGIN_OUTLINED,
+            width=300,
+            on_click=self.login,
+        )
 
         register_button = ft.TextButton(
-            "Реєстрація", on_click=lambda _: self.page.go("/register"), width=300
+            "Реєстрація",
+            icon=ft.Icons.EDIT_OUTLINED,
+            width=300,
+            on_click=lambda _: self.page.go("/register"),
         )
 
         self.controls.append(
