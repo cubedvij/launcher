@@ -24,8 +24,6 @@ from .types import CallbackDict
 __all__ = ["install_minecraft_version"]
 
 
-def _set_callback(callback: CallbackDict, key: str, *args) -> None:
-    callback.get(key, empty)(*args)
 
 
 def _download_and_extract_native(
@@ -60,7 +58,7 @@ def install_libraries(
     libraries: list[ClientJsonLibrary],
     base_path: str,
     callback: CallbackDict,
-    max_workers: Optional[int] = 8,
+    max_workers: Optional[int] = 10,
 ) -> None:
     """
     Install all libraries for a Minecraft version.
@@ -70,8 +68,9 @@ def install_libraries(
         lib_info for lib_info in libraries
         if parse_rule_list(lib_info.get("rules", []), {})
     ]
-    _set_callback(callback, "setStatus", "Завантаження бібліотек...")
-    _set_callback(callback, "setMax", len(filtered_libraries))
+
+    callback.get("setStatus", empty)("Завантаження бібліотек...")
+    callback.get("setMax", empty)(len(filtered_libraries))
 
     def download_library(lib_info: ClientJsonLibrary) -> None:
         # Download natives if present
@@ -99,14 +98,15 @@ def install_libraries(
         for future in futures:
             future.result()
             count += 1
-            _set_callback(callback, "setProgress", count)
+            if count % 15 == 0:
+                callback.get("setProgress", empty)(count)
 
 
 def install_assets(
     data: ClientJson,
     base_path: str,
     callback: CallbackDict,
-    max_workers: Optional[int] = 8,
+    max_workers: Optional[int] = 10,
 ) -> None:
     """
     Install all assets for a Minecraft version.
@@ -128,8 +128,8 @@ def install_assets(
         assets_data: AssetsJson = json.load(f)
 
     assets = set(val["hash"] for val in assets_data["objects"].values())
-    _set_callback(callback, "setStatus", "Завантаження ресурсів...")
-    _set_callback(callback, "setMax", len(assets))
+    callback.get("setStatus", empty)("Завантаження ресурсів...")
+    callback.get("setMax", empty)(len(assets))
 
     count = 0
 
@@ -149,7 +149,8 @@ def install_assets(
         for future in futures:
             future.result()
             count += 1
-            _set_callback(callback, "setProgress", count)
+            if count % 125 == 0:
+                callback.get("setProgress", empty)(count)
 
 
 def do_version_install(
@@ -217,8 +218,8 @@ def do_version_install(
         shutil.copyfile(inherit_path, jar_path)
 
     # Download all jobs
-    _set_callback(callback, "setStatus", "Завантаження файлів...")
-    _set_callback(callback, "setMax", len(jobs))
+    callback.get("setStatus", empty)("Завантаження файлів...")
+    callback.get("setMax", empty)(len(jobs))
 
     count = 0
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -235,11 +236,11 @@ def do_version_install(
         for future in futures:
             future.result()
             count += 1
-            _set_callback(callback, "setProgress", count)
+            callback.get("setProgress", empty)(count)
 
     # Install java runtime if needed
     if "javaVersion" in versiondata:
-        _set_callback(callback, "setStatus", "Завантаження Java...")
+        callback.get("setStatus", empty)("Завантаження Java...")
         install_jvm_runtime(
             versiondata["javaVersion"]["majorVersion"],
             versiondata["javaVersion"]["component"],

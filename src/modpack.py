@@ -1,29 +1,31 @@
-from concurrent.futures import ThreadPoolExecutor
+import hashlib
+import json
+import logging
 import os
 import time
-import json
 import zipfile
-import hashlib
-import logging
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from typing import Callable, Dict, Optional, Tuple
 
 import httpx
 
-from pathlib import Path
-from typing import Optional, Dict, Tuple, Callable
-
-from minecraft_launcher_lib._helper import check_path_inside_minecraft_directory, download_file, empty
+from config import APPDATA_FOLDER, MINECRAFT_FOLDER, MODPACK_REPO_URL
+from minecraft_launcher_lib._helper import (
+    check_path_inside_minecraft_directory,
+    download_file,
+    empty,
+)
 from minecraft_launcher_lib.exceptions import VersionNotFound
 from minecraft_launcher_lib.fabric import install_fabric
 from minecraft_launcher_lib.forge import install_forge_version
-from minecraft_launcher_lib.quilt import install_quilt
-from minecraft_launcher_lib.types import CallbackDict
 from minecraft_launcher_lib.mrpack import (
-    MrpackInstallOptions,
     MrpackIndex,
+    MrpackInstallOptions,
     _filter_mrpack_files,
 )
-
-from config import APPDATA_FOLDER, MINECRAFT_FOLDER, MODPACK_REPO_URL
+from minecraft_launcher_lib.quilt import install_quilt
+from minecraft_launcher_lib.types import CallbackDict
 
 
 class Modpack:
@@ -41,6 +43,12 @@ class Modpack:
             self._modpack_path / f"{self.name}-{self.remote_version}.mrpack"
         )
 
+        # self._ensure_modpack_exists()
+        # run on thread - self._ensure_modpack_exists()
+        executor = ThreadPoolExecutor(max_workers=1)
+        executor.submit(self._on_load)
+
+    def _on_load(self) -> None:
         self._ensure_modpack_exists()
         self._load_modpack_info()
 

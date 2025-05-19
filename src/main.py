@@ -2,7 +2,8 @@ import logging
 
 import flet as ft
 
-from auth import account
+from routes import LoginPage, MainPage, ProfilePage, RegisterPage, SettingsPage
+
 from updater import updater
 from config import (
     _COMPILED,
@@ -12,7 +13,6 @@ from config import (
     LAUNCHER_VERSION,
     WINDOW_SIZE,
 )
-from routes import LoginPage, MainPage, ProfilePage, RegisterPage, SettingsPage
 
 if _COMPILED:
     logging.basicConfig(
@@ -43,11 +43,10 @@ async def main(page: ft.Page):
     page.window.width, page.window.height = WINDOW_SIZE
     page.window.min_width, page.window.min_height = WINDOW_SIZE
     page.window.center()
-    
+
     page.window.visible = True
     page.window.prevent_close = False
-    page.update()
-    
+
     views = {
         "/": MainPage(page),
         "/login": LoginPage(page),
@@ -66,10 +65,12 @@ async def main(page: ft.Page):
         page.update()
 
     page.on_route_change = route_change
-    if account.validate() and account.get_user():
+    from auth import account
+
+    if await account.avalidate() and await account.aget_user():
         page.go("/")
     else:
         page.go("/login")
         
-
-ft.app(main, view=ft.AppView.FLET_APP_HIDDEN)
+if __name__ == "__main__":
+    ft.app(target=main, view=ft.AppView.FLET_APP_HIDDEN)

@@ -100,10 +100,15 @@ class MainPage(ft.View):
         for task in to_cancel:
             task.cancel()
 
-    def build_ui(self):
+    def _get_changelog(self):
         changelog_text = httpx.get(
             CHANGELOG_URL,
+            timeout=5,
+            follow_redirects=True,
         ).text
+        self._changelog.value = changelog_text
+
+    def build_ui(self):
         self._update_banner = ft.Banner(
             bgcolor=ft.Colors.SECONDARY_CONTAINER,
             content=ft.Text(
@@ -122,7 +127,7 @@ class MainPage(ft.View):
             ],
         )
         self._changelog = ft.Markdown(
-            value=changelog_text,
+            value="",
             auto_follow_links=True,
             extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
         )
@@ -351,6 +356,7 @@ class MainPage(ft.View):
             ),
         )
         self.controls.append(self.pagelet)
+        self.page.run_thread(self._get_changelog)
         self.page.update()
 
     async def _server_status_update(self):

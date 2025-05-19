@@ -1,5 +1,6 @@
+import time
 import flet as ft
-
+import httpx
 from settings import settings
 from config import RAM_SIZE, RAM_STEP
 
@@ -10,6 +11,7 @@ class SettingsPage(ft.View):
         self.page = page
         self.controls = []
         self.build_ui()
+        # self.page.run_thread(self._meme)
 
     def build_ui(self):
         self._appbar = ft.AppBar(
@@ -239,7 +241,64 @@ class SettingsPage(ft.View):
         #         ),
         #     ),
         # )
-        self._java_settins_tab = ft.Tab(
+        # self._text_span1 = ft.TextSpan(
+        #     "",
+        #     ft.TextStyle(
+        #         size=18,
+        #         weight=ft.FontWeight.NORMAL,
+        #         foreground=ft.Paint(
+        #             color=ft.Colors.BLACK,
+        #             stroke_width=2,
+        #             style=ft.PaintingStyle.STROKE,
+        #         ),
+        #     ),
+        # )
+
+        # self._text_span2 = ft.TextSpan(
+        #     "",
+        #     ft.TextStyle(
+        #         size=18,
+        #         weight=ft.FontWeight.NORMAL,
+        #         color=ft.Colors.WHITE,
+        #         shadow=ft.BoxShadow(
+        #             color=ft.Colors.BLACK,
+        #             spread_radius=0,
+        #             offset=ft.Offset(2, 2),
+        #         ),
+        #     ),
+        # )
+
+        # self._text = ft.Stack(
+        #     [
+        #         ft.Text(
+        #             spans=[self._text_span1],
+        #             text_align=ft.TextAlign.CENTER,
+        #         ),
+        #         ft.Text(
+        #             spans=[self._text_span2],
+        #             text_align=ft.TextAlign.CENTER,
+        #         ),
+        #     ],
+        #     alignment=ft.Alignment(0, 0),
+        #     fit=ft.StackFit.LOOSE,
+        #     expand=True,
+        #     expand_loose=True,
+        # )
+        # self.nigger = ft.Column(
+        #     controls=[self._text],
+        #     scroll=ft.ScrollMode.HIDDEN,
+        # )
+        # self._prikol = ft.Stack(
+        #     [
+        #         ft.Container(
+        #             content=ft.Image(src="/home/hampta/Downloads/caterpillar.gif", fit=ft.ImageFit.FILL),
+        #             padding=ft.Padding(0, 0, 0, 0),
+        #         ),
+        #         ft.Container(alignment=ft.Alignment(0, 0), content=self.nigger),
+        #     ],
+        #     fit=ft.StackFit.EXPAND,
+        # )
+        self._java_settings_tab = ft.Tab(
             text="Java",
             content=ft.Column(
                 spacing=4,
@@ -256,6 +315,10 @@ class SettingsPage(ft.View):
                 ],
             ),
         )
+        # self._about_tab = ft.Tab(
+        #     text="Про програму",
+        #     content=self._prikol,
+        # )
         # self._game_logs_tab = ft.Tab(
         #     text="Логи",
         #     content=ft.Column(
@@ -266,8 +329,9 @@ class SettingsPage(ft.View):
         self._tabs = ft.Tabs(
             expand=True,
             tabs=[
-                self._java_settins_tab,
+                self._java_settings_tab,
                 self._game_settings_tab,
+                # self._about_tab,
                 # self._game_logs_tab,
             ],
         )
@@ -276,7 +340,6 @@ class SettingsPage(ft.View):
             appbar=self._appbar,
             content=self._tabs,
         )
-
         self.controls.append(self.pagelet)
         self.page.update()
 
@@ -284,6 +347,23 @@ class SettingsPage(ft.View):
     #     logging.info("Add text")
     #     self._logs_text_field.value += "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam eget nunc nec nunc ultricies ultricies. Nullam nec nunc nec nunc ultricies ultricies. Nullam nec nunc nec nunc ultricies ultricies.\n"
     #     self.page.update()
+
+    def _meme(self):
+        time.sleep(2)
+        ip_info = httpx.get("https://ipapi.co/json/").json()
+        # format ip_info to multiline string
+        ip_info_str = "\n".join(
+            [
+                f"{key.replace('_', ' ').upper()}: {value}"
+                for key, value in ip_info.items()
+            ]
+        )
+        for char in ip_info_str:
+            self._text_span1.text += char
+            self._text_span2.text += char
+            self.nigger.scroll_to(offset=-1)
+            time.sleep(0.03)
+            self.page.update()
 
     def _inscare_min_ram_value(self, event):
         value = int(self._min_ram_field.value)

@@ -18,7 +18,7 @@ class RegisterPage(ft.View):
         self.confirm_password = ft.TextField(label="Підтвердіть пароль", password=True, can_reveal_password=True, width=300, max_length=32)
         
         register_button = ft.ElevatedButton("Зареєструватися", on_click=self.register, width=300)
-        back_button = ft.TextButton("Назад", on_click=lambda _: self.page.go("/login"))
+        back_button = ft.TextButton("Назад", on_click=self.go_login, width=300)
         
         self.controls.append(
             ft.Row(
@@ -55,3 +55,6 @@ class RegisterPage(ft.View):
                 snack_bar = ft.SnackBar(ft.Text(resp), bgcolor=ft.Colors.RED_400, open=True)
         e.control.page.overlay.append(snack_bar)
         self.page.update()
+        
+    def go_login(self, e: ft.ControlEvent):
+        self.page.go("/login")

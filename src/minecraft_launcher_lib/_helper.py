@@ -80,10 +80,12 @@ def download_file(
                 callback.get("setMax", empty)(total)
                 len_chunk = 0
                 with open(path, "wb") as f:
-                    for chunk in r.iter_bytes(chunk_size=8192):
+                    for chunk in r.iter_bytes(chunk_size=1024 * 10):
                         f.write(chunk)
                         len_chunk += len(chunk)
-                        callback.get("setProgress", empty)(len_chunk)
+                        if len_chunk % 2 == 0:
+                            callback.get("setProgress", empty)(len_chunk)
+                        # callback.get("setProgress", empty)(len_chunk)
             break
         except Exception:
             if attempt < retries - 1:
