@@ -281,6 +281,10 @@ class SettingsPage(ft.View):
             on_click=self._clear_minecraft_dir,
             height=40,
             expand=True,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.Padding(0, 0, 0, 0),
+            ),
         )
         self._open_mc_dir_btn = ft.FilledTonalButton(
             text="Відкрити теку",
@@ -288,6 +292,10 @@ class SettingsPage(ft.View):
             on_click=self._open_minecraft_dir,
             height=40,
             expand=True,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.Padding(0, 0, 0, 0),
+            ),
         )
         self._reset_mc_dir_btn = ft.FilledButton(
             text="Скинути теку",
@@ -295,6 +303,10 @@ class SettingsPage(ft.View):
             on_click=self._reset_minecraft_dir,
             height=40,
             expand=True,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.Padding(0, 0, 0, 0),
+            ),
         )
         self._minecraft_dir_field = ft.TextField(
             value=settings.minecraft_directory,

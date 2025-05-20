@@ -104,6 +104,7 @@ if _COMPILED:
         datefmt="%H:%M:%S",
     )
     logging.getLogger("flet_core").setLevel(logging.INFO)
+    logging.getLogger("httpx").setLevel(logging.ERROR)
 else:
     logging.basicConfig(
         level=logging.INFO,
@@ -113,6 +114,7 @@ else:
     )
     
     logging.getLogger("flet_core").setLevel(logging.INFO)
+    logging.getLogger("httpx").setLevel(logging.ERROR)
 
 logging.info(f"Launcher version: {LAUNCHER_VERSION}")
 logging.info(f"Launcher directory: {LAUNCHER_DIRECTORY}")

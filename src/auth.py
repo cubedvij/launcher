@@ -39,15 +39,23 @@ class Auth:
             self.api_session.headers["Authorization"] = f"Bearer {token}"
         self.calculate_skin_hash()
 
-    def calculate_skin_hash(self):
-        player = self.user.get("user", {}).get("players", [{}])[0]
-        skin_hash = player.get("skinUrl", "").split("/")[-1].split(".")[0] if player.get("skinUrl") else "none"
-        cape_hash = player.get("capeUrl", "").split("/")[-1].split(".")[0] if player.get("capeUrl") else "none"
-        self.skin_hash = hashlib.md5(f"{skin_hash}{cape_hash}".encode()).hexdigest()
-
     def save_user(self):
         with open(USER_FILE, "w") as f:
             json.dump(self.user, f)
+
+    def calculate_skin_hash(self):
+        player = self.user.get("user", {}).get("players", [{}])[0]
+        skin_hash = (
+            player.get("skinUrl", "").split("/")[-1].split(".")[0]
+            if player.get("skinUrl")
+            else "none"
+        )
+        cape_hash = (
+            player.get("capeUrl", "").split("/")[-1].split(".")[0]
+            if player.get("capeUrl")
+            else "none"
+        )
+        self.skin_hash = hashlib.md5(f"{skin_hash}{cape_hash}".encode()).hexdigest()
 
     def register(self, username: str, password: str):
         resp = self.api_session.post(
@@ -78,11 +86,13 @@ class Auth:
         if resp.status_code != 200:
             return resp
         data = resp.json()
-        self.account.update({
-            "access_token": data["accessToken"],
-            "client_token": data["clientToken"],
-            "username": data["selectedProfile"]["name"],
-        })
+        self.account.update(
+            {
+                "access_token": data["accessToken"],
+                "client_token": data["clientToken"],
+                "username": data["selectedProfile"]["name"],
+            }
+        )
         self.save_account()
         api_resp = self.__login(username, password)
         if api_resp.status_code != 200:
@@ -101,10 +111,12 @@ class Auth:
         if resp.status_code != 200:
             return "Помилка сервера або відсутній інтернет"
         data = resp.json()
-        self.account.update({
-            "access_token": data["accessToken"],
-            "client_token": data["clientToken"],
-        })
+        self.account.update(
+            {
+                "access_token": data["accessToken"],
+                "client_token": data["clientToken"],
+            }
+        )
         self.save_account()
         return data
 
@@ -172,7 +184,9 @@ class Auth:
         self.user.update(resp.json())
         self.update_skin = True
         self.save_user()
-        self.api_session.headers["Authorization"] = f"Bearer {self.user.get('apiToken', '')}"
+        self.api_session.headers["Authorization"] = (
+            f"Bearer {self.user.get('apiToken', '')}"
+        )
         self.calculate_skin_hash()
         return resp
 
@@ -184,18 +198,15 @@ class Auth:
         data = resp.json()
         player = self.user.get("user", {}).get("players", [{}])[0]
         new_player = data.get("players", [{}])[0]
-        self.update_skin = (
-            player.get("skinUrl") != new_player.get("skinUrl") or
-            player.get("capeUrl") != new_player.get("capeUrl")
-        )
+        self.update_skin = player.get("skinUrl") != new_player.get(
+            "skinUrl"
+        ) or player.get("capeUrl") != new_player.get("capeUrl")
         self.user.setdefault("user", {}).update(data)
         self.save_user()
         return True
 
     def update_user(self, data):
-        return self.api_session.patch(
-            f"{self.base_url}/drasl/api/v2/user", json=data
-        )
+        return self.api_session.patch(f"{self.base_url}/drasl/api/v2/user", json=data)
 
     def update_player(self, data):
         uuid = self.user.get("user", {}).get("players", [{}])[0].get("uuid")
@@ -241,5 +252,6 @@ class Auth:
         skin_full.save(skin_files[1])
         skin_full_back.save(skin_files[2])
         self.update_skin = False
+
 
 account = Auth()

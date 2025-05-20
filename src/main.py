@@ -25,7 +25,7 @@ async def main(page: ft.Page):
         ),
     )
     page.window.visible = True
-    # page.window.prevent_close = False
+    page.window.prevent_close = False
 
     views = {
         "/": MainPage(page),
