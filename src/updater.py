@@ -32,6 +32,7 @@ class Updater:
         if "dev" in self.version or not _COMPILED:
             # Don't check for updates in dev build or if not compiled
             return False
+        self.clear_old_meipass()
         self.update_available = (
             await self.get_latest_version() != self.version
             and self.latest_version != ""
@@ -44,9 +45,10 @@ class Updater:
             if response.status_code != 200:
                 logging.error(f"Failed to check for updates: {response.status_code}")
                 return ""
-            self.latest_version = response.json()["tag_name"]
+            self.latest_release = response.json()
+            self.latest_version = self.latest_release["tag_name"]
             # set latest_download_url to the first asset in the assets list by SYSTEM_OS
-            for asset in response.json()["assets"]:
+            for asset in self.latest_release["assets"]:
                 if asset["name"] == os.path.basename(sys.executable):
                     self.latest_download_url = asset["browser_download_url"]
                     self.executable = asset["name"]

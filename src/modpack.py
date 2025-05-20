@@ -2,7 +2,6 @@ import hashlib
 import json
 import logging
 import os
-import time
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -35,15 +34,14 @@ class Modpack:
         self._index_url = f"{self._repo_url}/raw/refs/heads/main/modrinth.index.json"
         self._zip_url = f"{self._repo_url}/archive/refs/heads/main.zip"
         self.name = "cubedvij"
+        self.installed_version = None
+        self.remote_version = None
+        self._modpack_file = None
+        self._modpack_path = None
         self._setup_paths()
 
-        self.installed_version = self._get_installed_modpack_version()
-        self.modpack_index = self._fetch_latest_index()
-        self.remote_version = self.modpack_index.get("versionId")
-        self._modpack_file = (
-            self._modpack_path / f"{self.name}-{self.remote_version}.mrpack"
-        )
-
+        self._fetch_latest_index()
+        self._get_installed_modpack_version()
         # self._ensure_modpack_exists()
         # run on thread - self._ensure_modpack_exists()
         executor = ThreadPoolExecutor(max_workers=1)
@@ -75,24 +73,29 @@ class Modpack:
             f"{self.minecraft_version}-{self.modloader}-{self.modloader_version}"
         )
 
-    def _fetch_latest_index(self) -> Optional[Dict]:
+    def _fetch_latest_index(self):
         """Fetch the latest index data from GitHub."""
         try:
             response = httpx.get(self._index_url, follow_redirects=True)
             response.raise_for_status()
             with open(self._modpack_index_file, "wb") as f:
                 f.write(response.content)
-            return json.loads(response.text)
+            json_data = json.loads(response.text)
+            self.modpack_index = json_data
+            self.remote_version = json_data.get("versionId")
+            self._modpack_file = (
+                self._modpack_path / f"{self.name}-{self.remote_version}.mrpack"
+            )
         except httpx.HTTPError as e:
             logging.info(f"Error fetching modpack index: {e}")
-            return None
+            self.modpack_index = None
 
-    def _get_installed_modpack_version(self) -> Optional[str]:
+    def _get_installed_modpack_version(self) -> None:
         """Get the currently installed modpack version."""
         if self._modpack_index_file.exists():
             with open(self._modpack_index_file, "r") as f:
-                return json.load(f).get("versionId")
-        return None
+                self.installed_version = json.load(f).get("versionId")
+        self.installed_version = self.installed_version or "unknown"
 
     def _get_modloader_info(self) -> Tuple[str, str]:
         """Extract modloader information from dependencies."""
@@ -107,15 +110,12 @@ class Modpack:
     def is_up_to_date(self) -> bool:
         """Check if the installed modpack is up to date."""
         if not self.modpack_index:
-            logging.info("No modpack index available")
             return False
 
         if not self.remote_version:
-            logging.info("Modpack version not found")
             return False
 
         if self.installed_version == self.remote_version:
-            logging.info(f"Modpack is up to date: {self.installed_version}")
             return True
 
         logging.info(
@@ -140,7 +140,6 @@ class Modpack:
                 return True
             except (httpx.HTTPError, KeyError, httpx.IncompleteRead) as e:
                 logging.info(f"Error downloading file (attempt {attempt + 1}): {e}")
-                time.sleep(2)
         return False
 
     def _download_modpack(self) -> bool:

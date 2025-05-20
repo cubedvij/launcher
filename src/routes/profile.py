@@ -96,6 +96,7 @@ class ProfilePage(ft.View):
                 width=32,
                 height=32,
                 on_click=self._edit_nickname,
+                shape=ft.RoundedRectangleBorder(radius=8),
             ),
             title_alignment=ft.ListTileTitleAlignment.TITLE_HEIGHT,
             content_padding=ft.Padding(8, 2, 8, 2),
@@ -131,14 +132,19 @@ class ProfilePage(ft.View):
                         dialog_title="Виберіть файл скіна",
                         allowed_extensions=["png"],
                     ),
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                        padding=ft.Padding(0, 0, 0, 0),
+                    ),
                 ),
-                ft.IconButton(
+                ft.FloatingActionButton(
                     icon=ft.Icons.DELETE,
-                    icon_color=ft.Colors.WHITE,
                     scale=0.8,
+                    mini=True,
                     bgcolor=ft.Colors.RED_400,
                     tooltip="Видалити скін",
                     on_click=self.on_delete_skin,
+                    shape=ft.RoundedRectangleBorder(radius=8),
                 ),
             ],
         )
@@ -154,14 +160,19 @@ class ProfilePage(ft.View):
                         dialog_title="Виберіть файл плаща",
                         allowed_extensions=["png"],
                     ),
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=8),
+                        padding=ft.Padding(0, 0, 0, 0),
+                    ),
                 ),
-                ft.IconButton(
+                ft.FloatingActionButton(
                     icon=ft.Icons.DELETE,
-                    icon_color=ft.Colors.WHITE,
                     scale=0.8,
+                    mini=True,
                     bgcolor=ft.Colors.RED_400,
                     tooltip="Видалити плащ",
                     on_click=self.on_delete_cape,
+                    shape=ft.RoundedRectangleBorder(radius=8),
                 ),
             ],
         )
@@ -192,6 +203,10 @@ class ProfilePage(ft.View):
                             icon=ft.Icons.LOCK,
                             expand=True,
                             on_click=self.on_change_password,
+                            style=ft.ButtonStyle(
+                                shape=ft.RoundedRectangleBorder(radius=8),
+                                padding=ft.Padding(0, 0, 0, 0),
+                            ),
                         ),
                     ],
                 ),

@@ -1,11 +1,18 @@
+import asyncio
 import os
 import shutil
 import subprocess
-import time
 
 import flet as ft
 
-from config import APPDATA_FOLDER, RAM_SIZE, RAM_STEP, LAUNCHER_VERSION
+from config import (
+    APPDATA_FOLDER,
+    LAUNCHER_VERSION,
+    RAM_SIZE,
+    RAM_STEP,
+    LAUNCHER_COLORS,
+    LAUNCHER_THEMES,
+)
 from settings import settings
 from utils import Shimmer
 
@@ -213,7 +220,43 @@ class SettingsPage(ft.View):
             title=ft.Text("Закривати лаунчер при запуску гри:"),
             trailing=ft.Checkbox(value=settings.close_launcher),
         )
-        self._launcher_settings = ft.Card(
+
+        self.launcher_theme = ft.ListTile(
+            title=ft.Text("Тема лаунчера:"),
+            trailing=ft.Dropdown(
+                options=[
+                    ft.dropdown.Option(
+                        color,
+                        name
+                    )
+                    for color, name in LAUNCHER_THEMES.items()
+                ],
+                value=settings.launcher_theme,
+                on_change=self.launcher_theme_change,
+                width=200,
+            ),
+        )
+        self.launcher_color = ft.ListTile(
+            title=ft.Text("Колір лаунчера:"),
+            trailing=ft.Dropdown(
+                options=[
+                    ft.dropdown.Option(
+                        color,
+                        name,
+                        leading_icon=ft.Icon(ft.Icons.SQUARE_ROUNDED, color=color),
+                    )
+                    for color, name in LAUNCHER_COLORS.items()
+                ],
+                value=settings.launcher_color,
+                leading_icon=ft.Icon(
+                    ft.Icons.SQUARE_ROUNDED,
+                    color=settings.launcher_color,
+                ),
+                on_change=self.launcher_color_change,
+                width=200,
+            ),
+        )
+        self._launcher_settings_card = ft.Card(
             expand=True,
             shape=ft.RoundedRectangleBorder(radius=8),
             content=ft.Container(
@@ -225,6 +268,8 @@ class SettingsPage(ft.View):
                         ft.Divider(height=4),
                         self._minimize_launcher,
                         self._quit_launcher,
+                        self.launcher_theme,
+                        self.launcher_color,
                     ],
                 ),
             ),
@@ -252,7 +297,7 @@ class SettingsPage(ft.View):
             expand=True,
         )
         self._minecraft_dir_field = ft.TextField(
-            value=settings._minecraft_directory,
+            value=settings.minecraft_directory,
             label="Minecraft",
             border_color=ft.Colors.SECONDARY_CONTAINER,
             expand=True,
@@ -462,7 +507,7 @@ class SettingsPage(ft.View):
             ),
             content=ft.Column(
                 spacing=4,
-                controls=[self._launcher_settings],
+                controls=[self._launcher_settings_card],
             ),
         )
         self._about_tab = ft.Tab(
@@ -531,7 +576,7 @@ class SettingsPage(ft.View):
     #         time.sleep(0.03)
     #         self.page.update()
 
-    def _count_clicks(self, event):
+    async def _count_clicks(self, event):
         self._click_count += 1
         if self._click_count == 10:
             self._show_snack_bar("Шоти клікаешь!", ft.Colors.YELLOW_200)
@@ -546,11 +591,11 @@ class SettingsPage(ft.View):
             for i in range(512):
                 self._image.offset = ft.Offset(i / 60, 0)
                 self._image.update()
-                time.sleep(0.01)
+                await asyncio.sleep(0.01)
             for i in range(-512, 1):
                 self._image.offset = ft.Offset(i / 60, 0)
                 self._image.update()
-                time.sleep(0.01)
+                await asyncio.sleep(0.01)
         if self._click_count == 100:
             self._image_2 = ft.Image(
                 src="https://hfs.hampta.pp.ua/[Memes]/poshalko.webp",
@@ -571,7 +616,7 @@ class SettingsPage(ft.View):
                 )
             )
             self.page.update()
-            time.sleep(3.63)
+            await asyncio.sleep(3.63)
             self.page.overlay.pop()
             self.page.update()
 
@@ -611,7 +656,7 @@ class SettingsPage(ft.View):
         self._dir_picker.get_directory_path()
 
     def _pick_dir_result(self, e: ft.FilePickerResultEvent):
-        if not e.path or e.path == settings._minecraft_directory:
+        if not e.path or e.path == settings.minecraft_directory:
             return
         try:
             self._loading_indicator.visible = True
@@ -620,8 +665,8 @@ class SettingsPage(ft.View):
 
             if not os.path.exists(e.path):
                 os.makedirs(e.path)
-            for filename in os.listdir(settings._minecraft_directory):
-                src = os.path.join(settings._minecraft_directory, filename)
+            for filename in os.listdir(settings.minecraft_directory):
+                src = os.path.join(settings.minecraft_directory, filename)
                 dst = os.path.join(e.path, filename)
                 if os.path.exists(dst):
                     if os.path.isfile(dst) or os.path.islink(dst):
@@ -629,7 +674,7 @@ class SettingsPage(ft.View):
                     elif os.path.isdir(dst):
                         shutil.rmtree(dst)
                 shutil.move(src, e.path)
-            settings._minecraft_directory = e.path
+            settings.minecraft_directory = e.path
             self._minecraft_dir_field.value = e.path
             settings.save()
             self._show_snack_bar("Теку успішно переміщено!", ft.Colors.GREEN_400)
@@ -652,7 +697,7 @@ class SettingsPage(ft.View):
         self._loading_indicator.visible = True
         self._loading_indicator.disabled = False
         self.page.update()
-        mc_dir = settings._minecraft_directory
+        mc_dir = settings.minecraft_directory
         try:
             for filename in os.listdir(mc_dir):
                 path = os.path.join(mc_dir, filename)
@@ -669,7 +714,7 @@ class SettingsPage(ft.View):
             self.page.update()
 
     def _open_minecraft_dir(self, event):
-        mc_dir = settings._minecraft_directory
+        mc_dir = settings.minecraft_directory
         try:
             if os.name == "nt":
                 os.startfile(mc_dir)
@@ -685,7 +730,7 @@ class SettingsPage(ft.View):
         try:
             if not os.path.exists(default_path):
                 os.makedirs(default_path)
-            settings._minecraft_directory = default_path
+            settings.minecraft_directory = default_path
             self._minecraft_dir_field.value = default_path
             settings.save()
             self._show_snack_bar("Теку скинуто!", ft.Colors.GREEN_400)
@@ -698,6 +743,19 @@ class SettingsPage(ft.View):
         self._snack_bar.open = True
         self.page.update()
 
+    def launcher_theme_change(self, event):
+        settings.launcher_theme = event.data
+        settings.save()
+        self.page.theme_mode = event.data
+        self.page.update()
+        
+    def launcher_color_change(self, event):
+        settings.launcher_color = event.data
+        settings.save()
+        self.page.theme.color_scheme_seed = event.data
+        self.launcher_color.trailing.leading_icon.color = event.data
+        self.page.update()
+
     def go_index(self, event):
         settings.min_use_ram = int(self._min_ram_field.value)
         settings.max_use_ram = int(self._max_ram_field.value)
@@ -707,6 +765,6 @@ class SettingsPage(ft.View):
         settings.window_height = int(self._game_window_eight.trailing.value)
         settings.minimize_launcher = self._minimize_launcher.trailing.value
         settings.close_launcher = self._quit_launcher.trailing.value
-        settings._minecraft_directory = self._minecraft_dir_field.value
+        settings.minecraft_directory = self._minecraft_dir_field.value
         settings.save()
         self.page.go("/")

@@ -41,15 +41,29 @@ class MainPage(ft.View):
         }
         self.build_ui()
         self.page.run_task(self._server_status_update)
-        self.page.run_task(self.check_for_updates)
+        self.page.run_task(self._check_launcher_updates)
+        self.page.run_task(self._check_modpack_update_task)
 
-    async def check_for_updates(self):
-        if await updater.check_for_update():
-            logging.info("Update available.")
-            self.page.open(self._update_banner)
-            self.page.update()
-        else:
-            logging.info("No updates available.")
+    async def _check_launcher_updates(self):
+        while True:
+            await asyncio.sleep(60)
+            if await updater.check_for_update():
+                self.page.open(self._update_banner)
+                self.page.update()
+
+    async def _check_modpack_update_task(self):
+        while True:
+            await asyncio.sleep(60) 
+            await asyncio.to_thread(self._check_modpack_update)
+
+    def _check_modpack_update(self):
+        modpack._fetch_latest_index()
+        if not modpack.is_up_to_date():
+            self._installed_version.value = f"Встановлена версія: {modpack.installed_version}"
+            self._latest_version.value = f"Остання версія: {modpack.remote_version}"
+            # update changelog
+            self._get_changelog()
+            self.page.update()  # Check every 1 minutes
 
     @staticmethod
     async def update_user_info(event: ft.RouteChangeEvent):
@@ -94,6 +108,7 @@ class MainPage(ft.View):
         logging.info("Launcher exited.")
 
     def kill_app(self):
+
         logging.info("Trying to exit program via asyncio")
         to_cancel = asyncio.all_tasks(self.page.loop)
         if not to_cancel:
@@ -157,7 +172,7 @@ class MainPage(ft.View):
                     size=20,
                     weight=ft.FontWeight.BOLD,
                 ),
-                color=ft.Colors.SURFACE_CONTAINER_HIGHEST,     
+                color=ft.Colors.SURFACE_CONTAINER_HIGHEST,
             ),
             leading=ft.IconButton(
                 padding=ft.Padding(12, 12, 12, 12),
@@ -291,16 +306,18 @@ class MainPage(ft.View):
             visible=False,
         )
         self._progress_bar = ft.ProgressBar(value=0, visible=False)
+        self._installed_version = ft.Text(
+            f"Встановлена версія: {modpack.installed_version}",
+            size=12,
+        )
+        self._latest_version = ft.Text(
+            f"Остання версія: {modpack.remote_version}",
+            size=12,
+        )
         self._version_column = ft.Column(
             controls=[
-                ft.Text(
-                    f"Встановлена версія: {modpack.installed_version}",
-                    size=12,
-                ),
-                ft.Text(
-                    f"Остання версія: {modpack.remote_version}",
-                    size=12,
-                ),
+                self._installed_version,
+                self._latest_version,
             ],
             spacing=4,
             alignment=ft.MainAxisAlignment.END,
@@ -413,7 +430,9 @@ class MainPage(ft.View):
     def _check_game(self, event: ft.TapEvent):
         logging.info("Checking game...")
         # check if game is installed
-        installed_versions = mcl.utils.get_installed_versions(settings.minecraft_directory)
+        installed_versions = mcl.utils.get_installed_versions(
+            settings.minecraft_directory,
+        )
         installed_versions_list = []
         for version in installed_versions:
             installed_versions_list.append(version["id"])
@@ -569,6 +588,7 @@ class MainPage(ft.View):
             self.page.update()
 
     def _force_install_game(self, event: ft.TapEvent):
+        modpack._fetch_latest_index()
         self._install_minecraft()
 
     def _stop_game(self, event: ft.TapEvent):

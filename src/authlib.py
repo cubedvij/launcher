@@ -1,6 +1,5 @@
 import httpx
 import hashlib
-import time
 import logging
 
 from minecraft_launcher_lib._helper import empty
@@ -52,11 +51,10 @@ class Authlib:
                 return True
             except (httpx.HTTPError, KeyError, IndexError) as e:
                 logging.info(f"Error downloading release (attempt {attempt+1}): {e}")
-                time.sleep(2)
         return False
     
     def get_latest_release_hash(self):
-        if not self.realeases:
+        if not self.releases:
             self.get_releases()
         return self.get_latest_release()["tag_name"]
     

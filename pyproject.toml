@@ -5,8 +5,8 @@ description = "Launcher for Minecraft server"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "flet_cli>=0.28.1",
-    "flet[desktop]>=0.28.1",
+    "flet_cli>=0.28.2",
+    "flet[desktop]>=0.28.2",
     "minestat>=2.6.3",
     "pillow>=11.2.1",
     "psutil>=7.0.0",

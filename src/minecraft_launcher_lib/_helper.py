@@ -12,7 +12,7 @@ import platform
 import re
 import subprocess
 import sys
-import time
+
 import zipfile
 from typing import Any, Literal, Optional
 
@@ -89,9 +89,12 @@ def download_file(
             break
         except Exception:
             if attempt < retries - 1:
-                time.sleep(retry_delay)
+                callback.get("setStatus", empty)(f"Помилка завантаження, повторна спроба {attempt + 1}...")
+                callback.get("setProgress", empty)(0)
+                continue
             else:
-                raise
+                callback.get("setStatus", empty)("Помилка завантаження")
+                return False
 
     if lzma_compressed:
         with open(path, "rb") as f:

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import flet as ft
 
@@ -92,7 +93,7 @@ class Shimmer(ft.Container):
                     await asyncio.sleep(0.4)
                 await asyncio.sleep(0.01)
         except Exception as e:
-            print("EXCEPTION", e)
+            logging.error("EXCEPTION", e)
 
     def create_dummy(self, target=None):
         opacity = 0.1
@@ -204,7 +205,7 @@ class Shimmer(ft.Container):
                     try:
                         dummy._set_attr(each_pos, ctrl_attrs[each_pos][0])
                     except Exception as e:
-                        print("EXCEPTION", e, ctrl_name, each_pos)
+                        logging.error("EXCEPTION", e, ctrl_name, each_pos)
 
         for each_pos in target.__dict__:
             if target.__dict__[each_pos] is not None:
@@ -271,13 +272,13 @@ class Shimmer(ft.Container):
                     self.create_dummy(each_control) for each_control in target.controls
                 ]
             except Exception as e:
-                print(e)
+                logging.error("EXCEPTION", e)
                 temp = []
                 for each_control in target.controls:
                     try:
                         temp.append(self.create_dummy(each_control))
                     except Exception as e:
-                        pass
+                        logging.error("EXCEPTION", e)
                 dummy.controls = temp
 
         if target.data == "shimmer_load":

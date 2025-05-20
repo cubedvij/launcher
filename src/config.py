@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import platform
@@ -7,7 +8,7 @@ from pathlib import Path
 import _version
 
 # _COMPILED = getattr(nuitka, "__compiled__", False)
-_COMPILED = getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
+_COMPILED = getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
 
 if _COMPILED:
     # If the script is compiled, use the directory of the executable
@@ -66,3 +67,52 @@ JVM_ARGS = [
 # IN MB
 RAM_SIZE = psutil.virtual_memory().total // 1024 // 1024
 RAM_STEP = 256
+
+LAUNCHER_THEMES = {
+    "system": "Системна",
+    "light": "Світла",
+    "dark": "Темна",
+}
+
+LAUNCHER_COLORS = {
+    "red": "Червоний",
+    "pink": "Рожевий",
+    "purple": "Фіолетовий",
+    "deeppurple": "Темно-фіолетовий",
+    "indigo": "Індиго",
+    "blue": "Синій",
+    "lightblue": "Блакитний",
+    "cyan": "Бірюзовий",
+    "teal": "Синьо-зелений",
+    "green": "Зелений",
+    "lightgreen": "Світло-зелений",
+    "lime": "Лаймовий",
+    "yellow": "Жовтий",
+    "amber": "Бурштиновий",
+    "orange": "Помаранчевий",
+    "deeporange": "Темно-помаранчевий",
+    "brown": "Коричневий",
+    "bluegrey": "Сіро-синій",
+}
+
+if _COMPILED:
+    logging.basicConfig(
+        filename=APPDATA_FOLDER / "launcher.log",
+        level=logging.INFO,
+        # make it more readable for the user
+        format="%(asctime)s [%(levelname)s] %(module)s:%(funcName)s %(message)s",
+        datefmt="%H:%M:%S",
+    )
+    logging.getLogger("flet_core").setLevel(logging.INFO)
+else:
+    logging.basicConfig(
+        level=logging.INFO,
+        # make it more readable for the user
+        format="%(asctime)s [%(levelname)s] %(module)s:%(funcName)s %(message)s",
+        datefmt="%H:%M:%S",
+    )
+    
+    logging.getLogger("flet_core").setLevel(logging.INFO)
+
+logging.info(f"Launcher version: {LAUNCHER_VERSION}")
+logging.info(f"Launcher directory: {LAUNCHER_DIRECTORY}")
