@@ -370,25 +370,25 @@ class Modpack:
 
     def _clean_old_mods(self) -> None:
         """Remove mods that are no longer needed."""
-        mods_dir = settings.minecraft_directory / "mods"
-        if mods_dir.exists():
-            for mod in mods_dir.iterdir():
-                if mod.is_file() and mod.suffix == ".jar":
-                    mod.unlink()
-                    logging.info(f"Removed old mod: {mod}")
+        mods_dir = os.path.join(settings.minecraft_directory, "mods")
+        if os.path.exists(mods_dir):
+            for mod in os.listdir(mods_dir):
+                mod_path = os.path.join(mods_dir, mod)
+                if os.path.isfile(mod_path) and mod.endswith(".jar"):
+                    os.remove(mod_path)
+                    logging.info(f"Removed old mod: {mod_path}")
         else:
             logging.info("Mods directory does not exist, skipping cleanup.")
 
     def verify_installation(self) -> bool:
         """Verify that all modpack files are correctly installed."""
         for file in self._modpack_info.get("files", []):
-            file_path = settings.minecraft_directory / file["path"]
-
+            file_path = os.path.join(settings.minecraft_directory, file["path"])
             # Check file existence
             if (
                 "env" in file and file["env"].get("client") == "required"
             ) or "hashes" in file:
-                if not file_path.exists():
+                if not os.path.exists(file_path):
                     logging.info(f"Missing required file: {file_path}")
                     return False
 
