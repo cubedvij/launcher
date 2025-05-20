@@ -46,11 +46,11 @@ class MainPage(ft.View):
 
     async def _check_launcher_updates(self):
         while True:
-            await asyncio.sleep(60)
             if await updater.check_for_update():
                 self.page.open(self._update_banner)
                 self.page.update()
-
+            await asyncio.sleep(60)
+            
     async def _check_modpack_update_task(self):
         while True:
             await asyncio.sleep(60) 
