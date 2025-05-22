@@ -2,6 +2,7 @@ import flet as ft
 
 from routes import LoginPage, MainPage, ProfilePage, RegisterPage, SettingsPage
 from settings import settings
+from utils import setup_theme_settings
 from config import (
     LAUNCHER_NAME,
     LAUNCHER_VERSION,
@@ -17,13 +18,13 @@ async def main(page: ft.Page):
 
     page.theme_mode = settings.launcher_theme
 
-    page.theme = ft.Theme(
-        color_scheme_seed=settings.launcher_color,
-        page_transitions=ft.PageTransitionsTheme(
-            linux=ft.PageTransitionTheme.FADE_FORWARDS,
-            windows=ft.PageTransitionTheme.FADE_FORWARDS,
-        ),
+    setup_theme_settings(
+        page,
+        settings.launcher_color,
+        settings.launcher_border_radius,
+        settings.launcher_border_shape,
     )
+
     page.window.visible = True
     page.window.prevent_close = False
 

@@ -40,9 +40,6 @@ class ProfilePage(ft.View):
         self._appbar = ft.AppBar(
             leading=ft.IconButton(
                 icon=ft.Icons.ARROW_BACK,
-                style=ft.ButtonStyle(
-                    shape=ft.RoundedRectangleBorder(radius=8),
-                ),
                 on_click=self.go_index,
                 tooltip="На головну",
             ),
@@ -51,17 +48,13 @@ class ProfilePage(ft.View):
                     width=64,
                     height=64,
                     icon=ft.Icons.LOGOUT,
-                    style=ft.ButtonStyle(
-                        shape=ft.RoundedRectangleBorder(radius=8),
-                    ),
                     on_click=self.open_alert,
                     tooltip="Вийти з аккаунта",
                 ),
             ],
             title=ft.Text("Профіль", size=20),
             leading_width=64,
-            center_title=False,
-            shape=ft.RoundedRectangleBorder(radius=8),
+            center_title=False,      
             bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
         )
 
@@ -71,6 +64,7 @@ class ProfilePage(ft.View):
                 width=64,
                 height=64,
                 fit=ft.ImageFit.CONTAIN,
+                filter_quality=ft.FilterQuality.NONE,
             ),
             title=ft.TextField(
                 # account.user["user"]["players"][0]["name"],
@@ -89,14 +83,10 @@ class ProfilePage(ft.View):
                 size=10,
                 selectable=True,
             ),
-            trailing=ft.FloatingActionButton(
+            trailing=ft.IconButton(
                 icon=ft.Icons.EDIT,
                 tooltip="Редагувати",
-                mini=True,
-                width=32,
-                height=32,
                 on_click=self._edit_nickname,
-                shape=ft.RoundedRectangleBorder(radius=8),
             ),
             title_alignment=ft.ListTileTitleAlignment.TITLE_HEIGHT,
             content_padding=ft.Padding(8, 2, 8, 2),
@@ -124,7 +114,7 @@ class ProfilePage(ft.View):
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             alignment=ft.MainAxisAlignment.CENTER,
             controls=[
-                ft.FilledTonalButton(
+                ft.OutlinedButton(
                     "Завантажити скін",
                     icon=ft.Icons.FACE,
                     expand=True,
@@ -132,19 +122,12 @@ class ProfilePage(ft.View):
                         dialog_title="Виберіть файл скіна",
                         allowed_extensions=["png"],
                     ),
-                    style=ft.ButtonStyle(
-                        shape=ft.RoundedRectangleBorder(radius=8),
-                        padding=ft.Padding(0, 0, 0, 0),
-                    ),
                 ),
-                ft.FloatingActionButton(
+                ft.IconButton(
                     icon=ft.Icons.DELETE,
-                    scale=0.8,
-                    mini=True,
-                    bgcolor=ft.Colors.RED_400,
+                    icon_color=ft.Colors.ERROR,
                     tooltip="Видалити скін",
                     on_click=self.on_delete_skin,
-                    shape=ft.RoundedRectangleBorder(radius=8),
                 ),
             ],
         )
@@ -152,7 +135,7 @@ class ProfilePage(ft.View):
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             alignment=ft.MainAxisAlignment.CENTER,
             controls=[
-                ft.FilledTonalButton(
+                ft.OutlinedButton(
                     "Завантажити плащ",
                     icon=ft.Icons.BOOKMARK,
                     expand=True,
@@ -160,19 +143,12 @@ class ProfilePage(ft.View):
                         dialog_title="Виберіть файл плаща",
                         allowed_extensions=["png"],
                     ),
-                    style=ft.ButtonStyle(
-                        shape=ft.RoundedRectangleBorder(radius=8),
-                        padding=ft.Padding(0, 0, 0, 0),
-                    ),
                 ),
-                ft.FloatingActionButton(
+                ft.IconButton(
                     icon=ft.Icons.DELETE,
-                    scale=0.8,
-                    mini=True,
-                    bgcolor=ft.Colors.RED_400,
+                    icon_color=ft.Colors.ERROR,
                     tooltip="Видалити плащ",
                     on_click=self.on_delete_cape,
-                    shape=ft.RoundedRectangleBorder(radius=8),
                 ),
             ],
         )
@@ -198,15 +174,11 @@ class ProfilePage(ft.View):
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     alignment=ft.MainAxisAlignment.CENTER,
                     controls=[
-                        ft.FilledTonalButton(
+                        ft.OutlinedButton(
                             "Змінити пароль",
                             icon=ft.Icons.LOCK,
                             expand=True,
                             on_click=self.on_change_password,
-                            style=ft.ButtonStyle(
-                                shape=ft.RoundedRectangleBorder(radius=8),
-                                padding=ft.Padding(0, 0, 0, 0),
-                            ),
                         ),
                     ],
                 ),
@@ -214,6 +186,7 @@ class ProfilePage(ft.View):
         )
         self._card = ft.Card(
             expand=True,
+            margin=ft.Margin(0, 4, 0, 0),
             content=ft.Container(
                 padding=ft.Padding(8, 0, 8, 0),
                 content=ft.Column(
@@ -242,41 +215,45 @@ class ProfilePage(ft.View):
             src=None,
             width=216,
             height=392,
+            filter_quality=ft.FilterQuality.NONE,
         )
         self._skin_back_image = ft.Image(
             # src=f"{SKINS_CACHE_FOLDER}/{account.skin_hash}-back.png",
             src=None,
             width=216,
             height=392,
+            filter_quality=ft.FilterQuality.NONE,
         )
 
+        self._skin_card = ft.Card(
+            margin=ft.Margin(0, 4, 0, 0),
+            
+            content=ft.Row(
+                width=500,
+                controls=[
+                    ft.Container(
+                        padding=ft.Padding(16, 0, 16, 0),
+                        content=self._skin_image,
+                        expand=True,
+                    ),
+                    ft.VerticalDivider(),
+                    ft.Container(
+                        padding=ft.Padding(16, 0, 16, 0),
+                        content=self._skin_back_image,
+                        expand=True,
+                    ),
+                ],
+            )
+        )
         self.pagelet = ft.Pagelet(
             expand=True,
             appbar=self._appbar,
             content=ft.Row(
                 expand=True,
+                spacing=4,
                 controls=[
                     self._card,
-                    ft.Card(
-                        content=ft.Row(
-                            width=500,
-                            controls=[
-                                ft.Container(
-                                    padding=ft.Padding(16, 0, 16, 0),
-                                    content=self._skin_image,
-                                    expand=True,
-                                ),
-                                ft.VerticalDivider(),
-                                ft.Container(
-                                    padding=ft.Padding(16, 0, 16, 0),
-                                    content=self._skin_back_image,
-                                    expand=True,
-                                ),
-                            ],
-                        ),
-                    ),
-                    # ft.VerticalDivider(),
-                    # self._skin_back_image,
+                    self._skin_card,
                 ],
             ),
             # height=200,

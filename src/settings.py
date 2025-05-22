@@ -12,6 +12,8 @@ class Settings:
         self.minecraft_options = os.path.join(self.minecraft_directory, "options.txt")
         self.launcher_theme = "system"
         self.launcher_color = "deeppurple"
+        self.launcher_border_radius = 8
+        self.launcher_border_shape = "roundedRectangle"
         self.window_width = 854
         self.window_height = 480
         self.fullscreen = False
@@ -29,18 +31,21 @@ class Settings:
                 launcher_data = data.get("launcher", {})
                 minecraft_data = data.get("minecraft", {})
 
-                self.launcher_theme = launcher_data.get("launcher_theme", self.launcher_theme)
-                self.launcher_color = launcher_data.get("launcher_color", self.launcher_color)
+                self.launcher_theme = launcher_data.get("theme", self.launcher_theme)
+                self.launcher_color = launcher_data.get("color", self.launcher_color)
+                self.launcher_border_radius = int(launcher_data.get("border_radius", self.launcher_border_radius))
+                self.launcher_border_shape = launcher_data.get("border_shape", self.launcher_border_shape)
+                
                 self.window_width = launcher_data.get("window_width", self.window_width)
                 self.window_height = launcher_data.get("window_height", self.window_height)
-                self.minimize_launcher = launcher_data.get("minimize_launcher", self.minimize_launcher)
-                self.close_launcher = launcher_data.get("close_launcher", self.close_launcher)
+                self.minimize_launcher = launcher_data.get("minimize", self.minimize_launcher)
+                self.close_launcher = launcher_data.get("close", self.close_launcher)
                 self.java_args = launcher_data.get("java_args", self.java_args)
 
                 self.fullscreen = minecraft_data.get("fullscreen", self.fullscreen)
                 self.min_use_ram = minecraft_data.get("min_use_ram", self.min_use_ram)
                 self.max_use_ram = minecraft_data.get("max_use_ram", self.max_use_ram)
-                self.minecraft_directory = minecraft_data.get("minecraft_directory", str(self.minecraft_directory))
+                self.minecraft_directory = minecraft_data.get("directory", str(self.minecraft_directory))
                 self.minecraft_directory = os.path.abspath(self.minecraft_directory)
                 self.minecraft_options = os.path.join(self.minecraft_directory, "options.txt")
 
@@ -59,10 +64,12 @@ class Settings:
         launcher_data = {
             "window_width": self.window_width,
             "window_height": self.window_height,
-            "launcher_theme": self.launcher_theme,
-            "launcher_color": self.launcher_color,
-            "minimize_launcher": self.minimize_launcher,
-            "close_launcher": self.close_launcher,
+            "theme": self.launcher_theme,
+            "color": self.launcher_color,
+            "border_radius": int(self.launcher_border_radius),
+            "border_shape": self.launcher_border_shape,
+            "minimize": self.minimize_launcher,
+            "close": self.close_launcher,
             "java_args": self.java_args,
         }
 
@@ -70,7 +77,7 @@ class Settings:
             "fullscreen": self.fullscreen,
             "min_use_ram": self.min_use_ram,
             "max_use_ram": self.max_use_ram,
-            "minecraft_directory": str(self.minecraft_directory),
+            "directory": str(self.minecraft_directory),
         }
 
         data = {

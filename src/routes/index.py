@@ -175,16 +175,11 @@ class MainPage(ft.View):
                 color=ft.Colors.SURFACE_CONTAINER_HIGHEST,
             ),
             leading=ft.IconButton(
-                padding=ft.Padding(12, 12, 12, 12),
                 content=Shimmer(
                     control=ft.Icon(ft.Icons.PERSON, size=32),
                     color=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                     width=64,
                     height=64,
-                ),
-                style=ft.ButtonStyle(
-                    shape=ft.RoundedRectangleBorder(radius=8),
-                    bgcolor=ft.Colors.TRANSPARENT,
                 ),
                 tooltip="Профіль",
                 on_click=lambda e: self.page.go("/profile"),
@@ -197,10 +192,6 @@ class MainPage(ft.View):
                         [
                             # donate button
                             ft.IconButton(
-                                padding=ft.Padding(12, 12, 12, 12),
-                                style=ft.ButtonStyle(
-                                    shape=ft.RoundedRectangleBorder(radius=8),
-                                ),
                                 icon=ft.Icons.ATTACH_MONEY,
                                 on_click=lambda e: self._open_link(
                                     "https://send.monobank.ua/jar/48bPzh2JmA"
@@ -209,10 +200,6 @@ class MainPage(ft.View):
                             ),
                             # github
                             ft.IconButton(
-                                padding=ft.Padding(12, 12, 12, 12),
-                                style=ft.ButtonStyle(
-                                    shape=ft.RoundedRectangleBorder(radius=8),
-                                ),
                                 content=ft.Image(
                                     src="github-mark.svg",
                                     width=20,
@@ -225,10 +212,6 @@ class MainPage(ft.View):
                                 tooltip="GitHub",
                             ),
                             ft.IconButton(
-                                padding=ft.Padding(12, 12, 12, 12),
-                                style=ft.ButtonStyle(
-                                    shape=ft.RoundedRectangleBorder(radius=8),
-                                ),
                                 icon=ft.Icons.TELEGRAM,
                                 on_click=lambda e: self._open_link(
                                     "https://t.me/cube_dvij"
@@ -237,10 +220,6 @@ class MainPage(ft.View):
                             ),
                             # discord
                             ft.IconButton(
-                                padding=ft.Padding(12, 12, 12, 12),
-                                style=ft.ButtonStyle(
-                                    shape=ft.RoundedRectangleBorder(radius=8),
-                                ),
                                 icon=ft.Icons.DISCORD,
                                 on_click=lambda e: self._open_link(
                                     "https://discord.gg/E9rZM58gqT"
@@ -249,11 +228,6 @@ class MainPage(ft.View):
                             ),
                             # settings
                             ft.IconButton(
-                                padding=ft.Padding(12, 12, 12, 12),
-                                style=ft.ButtonStyle(
-                                    shape=ft.RoundedRectangleBorder(radius=8),
-                                    bgcolor=ft.Colors.TRANSPARENT,
-                                ),
                                 icon=ft.Icons.SETTINGS,
                                 on_click=lambda e: self.page.go("/settings"),
                                 tooltip="Налаштування",
@@ -263,11 +237,11 @@ class MainPage(ft.View):
                     padding=ft.Padding(0, 0, 8, 0),
                 ),
             ],
-            shape=ft.RoundedRectangleBorder(radius=8),
+            
         )
         self._play_button = ft.FloatingActionButton(
             icon=ft.Icons.PLAY_ARROW,
-            shape=ft.RoundedRectangleBorder(radius=8),
+            
             text="Грати",
             width=160,
             on_click=self._check_game,
@@ -275,14 +249,14 @@ class MainPage(ft.View):
         self._check_game_button = ft.FloatingActionButton(
             icon=ft.Icons.RESTART_ALT,
             bgcolor=ft.Colors.SECONDARY_CONTAINER,
-            shape=ft.RoundedRectangleBorder(radius=8),
+            
             tooltip="Перевстановити гру",
             on_click=self._force_install_game,
         )
         self._open_game_folder_button = ft.FloatingActionButton(
             icon=ft.Icons.FOLDER,
             bgcolor=ft.Colors.SECONDARY_CONTAINER,
-            shape=ft.RoundedRectangleBorder(radius=8),
+            
             tooltip="Відкрити папку з грою",
             on_click=lambda e: self._open_link(f"file://{APPDATA_FOLDER}"),
         )

@@ -2,7 +2,6 @@ import asyncio
 import os
 import shutil
 import subprocess
-
 import flet as ft
 
 from config import (
@@ -14,7 +13,7 @@ from config import (
     LAUNCHER_THEMES,
 )
 from settings import settings
-from utils import Shimmer
+from utils import Shimmer, setup_theme_settings
 
 
 class SettingsPage(ft.View):
@@ -53,16 +52,12 @@ class SettingsPage(ft.View):
         self._appbar = ft.AppBar(
             leading=ft.IconButton(
                 icon=ft.Icons.ARROW_BACK,
-                style=ft.ButtonStyle(
-                    shape=ft.RoundedRectangleBorder(radius=8),
-                ),
                 on_click=self.go_index,
                 tooltip="На головну",
             ),
             title=ft.Text("Налаштування", size=20),
             leading_width=64,
             center_title=False,
-            shape=ft.RoundedRectangleBorder(radius=8),
             bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
         )
         self._min_ram_field = ft.TextField(
@@ -139,7 +134,6 @@ class SettingsPage(ft.View):
             border_color=ft.Colors.SECONDARY_CONTAINER,
         )
         self._card_ram = ft.Card(
-            shape=ft.RoundedRectangleBorder(radius=8),
             content=ft.Container(
                 padding=ft.Padding(8, 8, 8, 8),
                 content=ft.Column(
@@ -161,7 +155,6 @@ class SettingsPage(ft.View):
         )
         self._card_java_args = ft.Card(
             expand=True,
-            shape=ft.RoundedRectangleBorder(radius=8),
             content=ft.Container(
                 padding=ft.Padding(8, 8, 8, 8),
                 content=ft.Column(
@@ -197,7 +190,6 @@ class SettingsPage(ft.View):
             ),
         )
         self._game_window_settings = ft.Card(
-            shape=ft.RoundedRectangleBorder(radius=8),
             content=ft.Container(
                 padding=ft.Padding(8, 8, 8, 8),
                 content=ft.Column(
@@ -221,14 +213,11 @@ class SettingsPage(ft.View):
             trailing=ft.Checkbox(value=settings.close_launcher),
         )
 
-        self.launcher_theme = ft.ListTile(
+        self._launcher_theme = ft.ListTile(
             title=ft.Text("Тема лаунчера:"),
             trailing=ft.Dropdown(
                 options=[
-                    ft.dropdown.Option(
-                        color,
-                        name
-                    )
+                    ft.dropdown.Option(color, name)
                     for color, name in LAUNCHER_THEMES.items()
                 ],
                 value=settings.launcher_theme,
@@ -236,7 +225,7 @@ class SettingsPage(ft.View):
                 width=200,
             ),
         )
-        self.launcher_color = ft.ListTile(
+        self._launcher_color = ft.ListTile(
             title=ft.Text("Колір лаунчера:"),
             trailing=ft.Dropdown(
                 options=[
@@ -256,9 +245,56 @@ class SettingsPage(ft.View):
                 width=200,
             ),
         )
+        self._launcher_border_radius = ft.ListTile(
+            title=ft.Text("Розмір закруглення країв:"),
+            trailing=ft.TextField(
+                value=settings.launcher_border_radius,
+                width=200,
+                input_filter=ft.InputFilter(regex_string=r"^[0-9]*$"),
+                on_change=self._launcher_border_radius_change,
+                suffix=ft.Row(
+                    alignment=ft.MainAxisAlignment.END,
+                    tight=True,
+                    spacing=16,
+                    controls=[
+                        ft.Text("px"),
+                        ft.IconButton(
+                            padding=ft.Padding(0, 0, 0, 0),
+                            width=24,
+                            height=24,
+                            icon_size=16,
+                            scale=1.5,
+                            icon=ft.Icons.KEYBOARD_ARROW_UP,
+                            on_click=self._increase_launcher_border_radius,
+                        ),
+                        ft.IconButton(
+                            padding=ft.Padding(0, 0, 0, 0),
+                            width=24,
+                            height=24,
+                            icon_size=16,
+                            scale=1.5,
+                            icon=ft.Icons.KEYBOARD_ARROW_DOWN,
+                            on_click=self._decrease_launcher_border_radius,
+                        ),
+                    ],
+                ),
+            ),
+        )
+        self._launcher_border_shape = ft.ListTile(
+            title=ft.Text("Форма країв лаунчера:"),
+            trailing=ft.Dropdown(
+                options=[
+                    ft.dropdown.Option("roundedRectangle", "Закруглений"),
+                    ft.dropdown.Option("beveledRectangle", "Скошений"),
+                    ft.dropdown.Option("continuousRectangle", "Безперервний"),
+                ],
+                value=settings.launcher_border_shape,
+                on_change=self._launcher_border_shape_change,
+                width=200,
+            ),
+        )
         self._launcher_settings_card = ft.Card(
             expand=True,
-            shape=ft.RoundedRectangleBorder(radius=8),
             content=ft.Container(
                 padding=ft.Padding(8, 8, 8, 8),
                 content=ft.Column(
@@ -268,45 +304,35 @@ class SettingsPage(ft.View):
                         ft.Divider(height=4),
                         self._minimize_launcher,
                         self._quit_launcher,
-                        self.launcher_theme,
-                        self.launcher_color,
+                        self._launcher_theme,
+                        self._launcher_color,
+                        self._launcher_border_radius,
+                        self._launcher_border_shape,
                     ],
                 ),
             ),
         )
         # Minecraft directory field
-        self._clear_mc_dir_btn = ft.FilledTonalButton(
+        self._clear_mc_dir_btn = ft.OutlinedButton(
             text="Очистити теку",
             icon=ft.Icons.DELETE_SWEEP,
             on_click=self._clear_minecraft_dir,
             height=40,
             expand=True,
-            style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=8),
-                padding=ft.Padding(0, 0, 0, 0),
-            ),
         )
-        self._open_mc_dir_btn = ft.FilledTonalButton(
+        self._open_mc_dir_btn = ft.OutlinedButton(
             text="Відкрити теку",
             icon=ft.Icons.FOLDER_OPEN,
             on_click=self._open_minecraft_dir,
             height=40,
             expand=True,
-            style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=8),
-                padding=ft.Padding(0, 0, 0, 0),
-            ),
         )
-        self._reset_mc_dir_btn = ft.FilledButton(
+        self._reset_mc_dir_btn = ft.OutlinedButton(
             text="Скинути теку",
             icon=ft.Icons.REPLAY,
             on_click=self._reset_minecraft_dir,
             height=40,
             expand=True,
-            style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=8),
-                padding=ft.Padding(0, 0, 0, 0),
-            ),
         )
         self._minecraft_dir_field = ft.TextField(
             value=settings.minecraft_directory,
@@ -333,7 +359,6 @@ class SettingsPage(ft.View):
         )
         self._minecraft_dir_card = ft.Card(
             expand=True,
-            shape=ft.RoundedRectangleBorder(radius=8),
             content=ft.Container(
                 padding=ft.Padding(8, 8, 8, 8),
                 content=ft.Column(
@@ -365,7 +390,6 @@ class SettingsPage(ft.View):
             fit=ft.ImageFit.CONTAIN,
         )
         self._about_card = ft.Card(
-            shape=ft.RoundedRectangleBorder(radius=8),
             expand=True,
             content=ft.Container(
                 padding=ft.Padding(8, 8, 8, 8),
@@ -386,7 +410,6 @@ class SettingsPage(ft.View):
                                 ft.Button(
                                     content=self._image,
                                     style=ft.ButtonStyle(
-                                        shape=ft.RoundedRectangleBorder(radius=8),
                                         padding=ft.Padding(0, 0, 0, 0),
                                         shadow_color=ft.Colors.TRANSPARENT,
                                         overlay_color=ft.Colors.TRANSPARENT,
@@ -560,7 +583,6 @@ class SettingsPage(ft.View):
             appbar=self._appbar,
             content=ft.Container(
                 content=self._tabs,
-                border_radius=8,
             ),
         )
         self.controls.append(self.pagelet)
@@ -760,12 +782,67 @@ class SettingsPage(ft.View):
         settings.save()
         self.page.theme_mode = event.data
         self.page.update()
-        
+
     def launcher_color_change(self, event):
         settings.launcher_color = event.data
         settings.save()
         self.page.theme.color_scheme_seed = event.data
-        self.launcher_color.trailing.leading_icon.color = event.data
+        self._launcher_color.trailing.leading_icon.color = event.data
+        self.page.update()
+
+    def _increase_launcher_border_radius(self, event):
+        value = int(self._launcher_border_radius.trailing.value)
+        if value + 1 > 64 or value + 1 < 0:
+            return
+        self._launcher_border_radius.trailing.value = value + 1
+        settings.launcher_border_radius = value + 1
+        settings.save()
+        setup_theme_settings(
+            self.page,
+            settings.launcher_color,
+            settings.launcher_border_radius,
+            settings.launcher_border_shape,
+        )
+        self.page.update()
+
+    def _decrease_launcher_border_radius(self, event):
+        value = int(self._launcher_border_radius.trailing.value)
+        if value - 1 < 0 or value - 1 > 64:
+            return
+        self._launcher_border_radius.trailing.value = value - 1
+        settings.launcher_border_radius = value - 1
+        settings.save()
+        setup_theme_settings(
+            self.page,
+            settings.launcher_color,
+            settings.launcher_border_radius,
+            settings.launcher_border_shape,
+        )
+        self.page.update()
+
+    def _launcher_border_shape_change(self, event):
+        settings.launcher_border_shape = event.data
+        settings.save()
+        setup_theme_settings(
+            self.page,
+            settings.launcher_color,
+            settings.launcher_border_radius,
+            settings.launcher_border_shape,
+        )
+        self.page.update()
+
+    def _launcher_border_radius_change(self, event):
+        value = int(event.data)
+        if value < 0 or value > 64:
+            return
+        settings.launcher_border_radius = value
+        settings.save()
+        setup_theme_settings(
+            self.page,
+            settings.launcher_color,
+            settings.launcher_border_radius,
+            settings.launcher_border_shape,
+        )
         self.page.update()
 
     def go_index(self, event):
