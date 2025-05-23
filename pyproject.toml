@@ -9,6 +9,7 @@ dependencies = [
     "flet[desktop]>=0.28.3",
     "minestat>=2.6.3",
     "psutil>=7.0.0",
+    "nuitka>=2.7.3",
 ]
 
 [tool.flet]

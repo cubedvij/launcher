@@ -32,55 +32,60 @@ jobs:
       - name : Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
+      - name: Setup Environment Variables
+        if: ${{ !inputs.disable-cache }}
         shell: bash
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y libgtk-3-dev
+          echo "NUITKA_CACHE_DIR=${{ github.action_path }}/nuitka/cache" >> $GITHUB_ENV
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
-          enable-cache: true
-          activate-environment: true
+            enable-cache: true
+            activate-environment: true
 
       - name: Install the project
         run: uv sync --all-extras --dev
 
-      - name: Run script
-        run: |
-          python update_version.py --dev
-
-      - name: Pack Flet app
+      - name: Install ccache
+        if: ${{ runner.os == 'Linux' }}
         shell: bash
         run: |
-          flet pack \
-            --name cube-launcher \
-            --yes \
-            --add-data=src/assets:assets \
-            -i src/assets/icon.ico \
-            ./src/main.py 
-        working-directory: .
+          sudo apt-get install -y ccache
 
-      - name: Sign Windows Executable
-        if: runner.os == 'Windows'
-        uses: dlemstra/code-sign-action@v1
+      - name: Cache Nuitka cache directory
+        if: ${{ !inputs.disable-cache }}
+        uses: actions/cache@v4
         with:
-          certificate: '${{ secrets.CERTIFICATE }}'
-          password: '${{ secrets.CERTIFICATE_PASSWORD }}'
-          recursive: false
-          files: |
-            dist/cube-launcher.exe
+          path: ${{ env.NUITKA_CACHE_DIR }}
+          key: ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-nuitka-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-
+            ${{ runner.os }}-${{ runner.arch }}-python-
+            ${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Build with Nuitka
+        shell: bash
+        run: |
+          set -e
+          python -m nuitka --include-package-data=minecraft_launcher_lib:version.txt \
+          --include-package-data=flet \
+          --include-package-data=assets \
+          --output-file=cube-launcher \
+          --windows-console-mode=disable \
+          --script-name=main.py \
+          --assume-yes-for-downloads \
+          --output-dir=build \
+          --mode=app
+        working-directory: .
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ runner.os }}
+          name: ${{ runner.os }}_build
           path: |
-            dist/cube-launcher
-            dist/cube-launcher.exe
-          compression-level: 9
+            build/cube-launcher.exe
+            build/cube-launcher
           include-hidden-files: true
 
       - name: Minimize uv cache

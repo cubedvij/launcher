@@ -4,21 +4,22 @@ import sys
 import platform
 import psutil
 
+import nuitka
 from pathlib import Path
 import _version
 
-# _COMPILED = getattr(nuitka, "__compiled__", False)
-_COMPILED = getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
+_COMPILED = getattr(nuitka, "__compiled__", False)
+# _COMPILED = getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
 
 if _COMPILED:
     # If the script is compiled, use the directory of the executable
     LAUNCHER_VERSION = _version.version
     LAUNCHER_DIRECTORY = os.path.dirname(sys.executable)
-    MEIPASS_FOLDER_NAME = os.path.basename(sys._MEIPASS)
+    # MEIPASS_FOLDER_NAME = os.path.basename(sys._MEIPASS)
 else:
     LAUNCHER_VERSION = "[DEV]"
     LAUNCHER_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
-    MEIPASS_FOLDER_NAME = None
+    # MEIPASS_FOLDER_NAME = None
 
 LAUNCHER_NAME = "Кубічний Лаунчер"
 WINDOW_SIZE = (900, 564)
