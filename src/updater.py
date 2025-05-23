@@ -1,6 +1,6 @@
 import os
 import sys
-# import shutil
+import shutil
 import httpx
 import logging
 import subprocess
@@ -13,7 +13,7 @@ from config import (
     SYSTEM_OS,
     LAUNCHER_DIRECTORY,
     APPDATA_FOLDER,
-    # MEIPASS_FOLDER_NAME,
+    MEIPASS_FOLDER_NAME,
 )
 
 
@@ -32,7 +32,7 @@ class Updater:
         if "dev" in self.version or not _COMPILED:
             # Don't check for updates in dev build or if not compiled
             return False
-        # self.clear_old_meipass()
+        self.clear_old_meipass()
         self.update_available = (
             await self.get_latest_version() != self.version
             and self.latest_version != ""
@@ -69,19 +69,19 @@ class Updater:
         logging.info("Update downloaded successfully.")
         self.replace_current_version()
 
-    # def copy_meipass(self):
-    #     # HACK: copy _MEIPASS to the temp directory
-    #     if not os.path.exists(
-    #         os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME),
-    #     ):
-    #         os.makedirs(os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME))
-    #     # copy _MEIPASS to the temp
-    #     shutil.copytree(
-    #         sys._MEIPASS,
-    #         os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME),
-    #         dirs_exist_ok=True,
-    #     )
-    #     logging.info(f"Copied _MEIPASS to temporary directory: {MEIPASS_FOLDER_NAME}")
+    def copy_meipass(self):
+        # HACK: copy _MEIPASS to the temp directory
+        if not os.path.exists(
+            os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME),
+        ):
+            os.makedirs(os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME))
+        # copy _MEIPASS to the temp
+        shutil.copytree(
+            sys._MEIPASS,
+            os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME),
+            dirs_exist_ok=True,
+        )
+        logging.info(f"Copied _MEIPASS to temporary directory: {MEIPASS_FOLDER_NAME}")
 
     def replace_current_version(self):
         # self.copy_meipass()
@@ -93,7 +93,7 @@ class Updater:
                     "/c",
                     "timeout /t 1 & "
                     + f"move /y {os.path.join(self.temp_dir, self.executable)} {os.path.join(LAUNCHER_DIRECTORY, self.executable)} & "
-                    # + f"move /y {os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)} {sys._MEIPASS} & "
+                    + f"move /y {os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)} {sys._MEIPASS} & "
                     + f"start {os.path.join(LAUNCHER_DIRECTORY, self.executable)}",
                 ],
                 creationflags=subprocess.CREATE_NO_WINDOW,
@@ -111,22 +111,22 @@ class Updater:
                     "-c",
                     "sleep 1 && "
                     + f"mv '{os.path.join(self.temp_dir, self.executable)}' '{os.path.join(LAUNCHER_DIRECTORY, self.executable)}' && "
-                    # + f"mv '{os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)}' '{sys._MEIPASS}' && "
+                    + f"mv '{os.path.join(self.temp_dir, MEIPASS_FOLDER_NAME)}' '{sys._MEIPASS}' && "
                     + f"exec '{os.path.join(LAUNCHER_DIRECTORY, self.executable)}'",
                 ],
                 start_new_session=True,
             )
 
-    # def clear_old_meipass(self):
-    #     # HACK: remove old _MEIPASS folder
-    #     meipass_parent = os.path.dirname(sys._MEIPASS)
-    #     meipass_folder = os.path.basename(sys._MEIPASS)
-    #     for folder in os.listdir(meipass_parent):
-    #         if folder.startswith("_MEI") and folder != meipass_folder:
-    #             shutil.rmtree(os.path.join(meipass_parent, folder))
-    #             logging.info(f"Removed old _MEIPASS folder: {folder}")
+    def clear_old_meipass(self):
+        # HACK: remove old _MEIPASS folder
+        meipass_parent = os.path.dirname(sys._MEIPASS)
+        meipass_folder = os.path.basename(sys._MEIPASS)
+        for folder in os.listdir(meipass_parent):
+            if folder.startswith("_MEI") and folder != meipass_folder:
+                shutil.rmtree(os.path.join(meipass_parent, folder))
+                logging.info(f"Removed old _MEIPASS folder: {folder}")
 
-    #     logging.info("Old MEIPASS folders cleared.")
+        logging.info("Old MEIPASS folders cleared.")
 
 
 updater = Updater()

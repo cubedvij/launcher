@@ -5,6 +5,7 @@ import subprocess
 
 import httpx
 import flet as ft
+from nava import play
 import minecraft_launcher_lib as mcl
 
 from minestat import MineStat, SlpProtocols
@@ -16,6 +17,7 @@ from authlib import authlib
 from updater import updater
 from config import (
     AUTHLIB_INJECTOR_URL,
+    BASE_PATH,
     SERVER_IP,
     SKINS_CACHE_FOLDER,
     LAUNCHER_DIRECTORY,
@@ -32,6 +34,7 @@ class MainPage(ft.View):
         super().__init__(route="/")
         self.page = page
         self.controls = []
+        self._keypressed_list = []
         self._max_progress = 0
         self._download_callback = {  # lambda : self._progress_text.text = status,
             "setStatus": lambda status: self._set_progress_text(status),
@@ -42,6 +45,24 @@ class MainPage(ft.View):
         self.page.run_task(self._server_status_update)
         self.page.run_task(self._check_launcher_updates)
         self.page.run_task(self._check_modpack_update_task)
+        self.page.on_keyboard_event = self.on_keyboard_event
+
+    async def on_keyboard_event(self, event: ft.KeyboardEvent):
+        # check iddqd
+        self._keypressed_list.append(event.key)
+        if len(self._keypressed_list) > 5:
+            self._keypressed_list.pop(0)
+        if self._keypressed_list == ["I", "D", "D", "Q", "D"]:
+            self._keypressed_list = []
+            play(os.path.join(BASE_PATH, "assets", "iddqd.wav"), async_mode=True)
+            event.page.views[0].pagelet.appbar.leading.content = ft.Image(
+                src="iddqd.png",
+                filter_quality=ft.FilterQuality.NONE,
+                fit=ft.ImageFit.CONTAIN,
+                width=64,
+                height=64,
+            )
+            self.page.update()
 
     async def _check_launcher_updates(self):
         while True:
@@ -49,16 +70,18 @@ class MainPage(ft.View):
                 self.page.open(self._update_banner)
                 self.page.update()
             await asyncio.sleep(60)
-            
+
     async def _check_modpack_update_task(self):
         while True:
-            await asyncio.sleep(60) 
+            await asyncio.sleep(60)
             await asyncio.to_thread(self._check_modpack_update)
 
     def _check_modpack_update(self):
         modpack._fetch_latest_index()
         if not modpack.is_up_to_date():
-            self._installed_version.value = f"Встановлена версія: {modpack.installed_version}"
+            self._installed_version.value = (
+                f"Встановлена версія: {modpack.installed_version}"
+            )
             self._latest_version.value = f"Остання версія: {modpack.remote_version}"
             # update changelog
             self._get_changelog()
@@ -107,7 +130,6 @@ class MainPage(ft.View):
         logging.info("Launcher exited.")
 
     def kill_app(self):
-
         logging.info("Trying to exit program via asyncio")
         to_cancel = asyncio.all_tasks(self.page.loop)
         if not to_cancel:
@@ -131,6 +153,10 @@ class MainPage(ft.View):
         self.pagelet.content.content.controls.clear()
         # add new _changelog
         self.pagelet.content.content.controls.append(self._changelog)
+
+    def __open_monobank(self, event: ft.TapEvent):
+        play(os.path.join(BASE_PATH, "assets", "mono.wav"), async_mode=True)
+        self._open_link("https://send.monobank.ua/jar/48bPzh2JmA")
 
     def build_ui(self):
         self._update_banner = ft.Banner(
@@ -192,9 +218,7 @@ class MainPage(ft.View):
                             # donate button
                             ft.IconButton(
                                 icon=ft.Icons.ATTACH_MONEY,
-                                on_click=lambda e: self._open_link(
-                                    "https://send.monobank.ua/jar/48bPzh2JmA"
-                                ),
+                                on_click=self.__open_monobank,
                                 tooltip="Підтримати проект",
                             ),
                             # github
@@ -236,11 +260,9 @@ class MainPage(ft.View):
                     padding=ft.Padding(0, 0, 8, 0),
                 ),
             ],
-            
         )
         self._play_button = ft.FloatingActionButton(
             icon=ft.Icons.PLAY_ARROW,
-            
             text="Грати",
             width=160,
             on_click=self._check_game,
@@ -248,16 +270,16 @@ class MainPage(ft.View):
         self._check_game_button = ft.FloatingActionButton(
             icon=ft.Icons.RESTART_ALT,
             bgcolor=ft.Colors.SECONDARY_CONTAINER,
-            
             tooltip="Перевстановити гру",
             on_click=self._force_install_game,
         )
         self._open_game_folder_button = ft.FloatingActionButton(
             icon=ft.Icons.FOLDER,
             bgcolor=ft.Colors.SECONDARY_CONTAINER,
-            
             tooltip="Відкрити папку з грою",
-            on_click=lambda e: self._open_link(f"file://{settings.minecraft_directory}"),
+            on_click=lambda e: self._open_link(
+                f"file://{settings.minecraft_directory}"
+            ),
         )
         self.floating_action_button = ft.Container(
             ft.Row(
