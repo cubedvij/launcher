@@ -33,21 +33,33 @@ class Settings:
 
                 self.launcher_theme = launcher_data.get("theme", self.launcher_theme)
                 self.launcher_color = launcher_data.get("color", self.launcher_color)
-                self.launcher_border_radius = int(launcher_data.get("border_radius", self.launcher_border_radius))
-                self.launcher_border_shape = launcher_data.get("border_shape", self.launcher_border_shape)
-                
+                self.launcher_border_radius = int(
+                    launcher_data.get("border_radius", self.launcher_border_radius)
+                )
+                self.launcher_border_shape = launcher_data.get(
+                    "border_shape", self.launcher_border_shape
+                )
+
                 self.window_width = launcher_data.get("window_width", self.window_width)
-                self.window_height = launcher_data.get("window_height", self.window_height)
-                self.minimize_launcher = launcher_data.get("minimize", self.minimize_launcher)
+                self.window_height = launcher_data.get(
+                    "window_height", self.window_height
+                )
+                self.minimize_launcher = launcher_data.get(
+                    "minimize", self.minimize_launcher
+                )
                 self.close_launcher = launcher_data.get("close", self.close_launcher)
                 self.java_args = launcher_data.get("java_args", self.java_args)
 
                 self.fullscreen = minecraft_data.get("fullscreen", self.fullscreen)
                 self.min_use_ram = minecraft_data.get("min_use_ram", self.min_use_ram)
                 self.max_use_ram = minecraft_data.get("max_use_ram", self.max_use_ram)
-                self.minecraft_directory = minecraft_data.get("directory", str(self.minecraft_directory))
+                self.minecraft_directory = minecraft_data.get(
+                    "directory", str(self.minecraft_directory)
+                )
                 self.minecraft_directory = os.path.abspath(self.minecraft_directory)
-                self.minecraft_options = os.path.join(self.minecraft_directory, "options.txt")
+                self.minecraft_options = os.path.join(
+                    self.minecraft_directory, "options.txt"
+                )
 
                 if not os.path.exists(self.minecraft_directory):
                     os.makedirs(self.minecraft_directory)
@@ -57,8 +69,6 @@ class Settings:
                 self._set_fullscreen()
         else:
             self.save()
-        # create minecraft directory symlink to the appdata folder
-        self.link_minecraft_directory()
 
     def save(self):
         launcher_data = {
@@ -96,18 +106,6 @@ class Settings:
             with open(self.minecraft_options, "w") as f:
                 f.write("fullscreen:false\n")
         self._set_fullscreen()
-        # create minecraft directory symlink to the appdata folder
-        self.link_minecraft_directory()
-
-    def link_minecraft_directory(self):
-        # remove old symlink if exists
-        if os.path.islink(APPDATA_FOLDER / "minecraft"):
-            os.remove(APPDATA_FOLDER / "minecraft")
-        # create new symlink
-        os.symlink(
-            os.path.abspath(self.minecraft_directory),
-            os.path.abspath(APPDATA_FOLDER / "minecraft"),
-        )
 
     def _set_fullscreen(self):
         # Set the Minecraft options to fullscreen

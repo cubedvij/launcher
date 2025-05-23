@@ -15,7 +15,6 @@ from modpack import modpack
 from authlib import authlib
 from updater import updater
 from config import (
-    APPDATA_FOLDER,
     AUTHLIB_INJECTOR_URL,
     SERVER_IP,
     SKINS_CACHE_FOLDER,
@@ -258,7 +257,7 @@ class MainPage(ft.View):
             bgcolor=ft.Colors.SECONDARY_CONTAINER,
             
             tooltip="Відкрити папку з грою",
-            on_click=lambda e: self._open_link(f"file://{APPDATA_FOLDER}"),
+            on_click=lambda e: self._open_link(f"file://{settings.minecraft_directory}"),
         )
         self.floating_action_button = ft.Container(
             ft.Row(
