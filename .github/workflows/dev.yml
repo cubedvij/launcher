@@ -68,12 +68,12 @@ jobs:
         shell: bash
         run: |
           set -e
-          python -m nuitka --include-package-data=minecraft_launcher_lib:version.txt \
+          python -m nuitka \
           --include-package-data=flet \
           --include-package-data=assets \
           --output-file=cube-launcher \
           --windows-console-mode=disable \
-          --script-name=main.py \
+          --script-name=./src/main.py \
           --assume-yes-for-downloads \
           --output-dir=build \
           --mode=app
