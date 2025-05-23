@@ -59,7 +59,7 @@ jobs:
             --name cube-launcher \
             --yes \
             --add-data=src/assets:assets \
-            -i src/assets/icon.png \
+            -i src/assets/icon.ico \
             ./src/main.py 
         working-directory: .
 

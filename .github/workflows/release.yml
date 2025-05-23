@@ -45,6 +45,7 @@ jobs:
           flet pack \
             --name cube-launcher \
             --yes \
+            -i src/assets/icon.ico \
             --add-data=src/assets:assets \
             ./src/main.py 
         working-directory: .
