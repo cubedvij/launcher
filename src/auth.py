@@ -5,13 +5,13 @@ import json
 import httpx
 import hashlib
 
-from minepi import Player
-from config import AUTH_URL, ACCOUNT_FILE, USER_FILE, SKINS_CACHE_FOLDER
+from config import AUTH_URL, ACCOUNT_FILE, SKIN_RENDER_URL, USER_FILE, SKINS_CACHE_FOLDER
 
 
 class Auth:
     def __init__(self):
         self.base_url = AUTH_URL
+        self.skin_url = SKIN_RENDER_URL
         self.account = {}
         self.user = {}
         self.update_skin = False
@@ -236,22 +236,25 @@ class Auth:
         ]
         if all(os.path.exists(f) for f in skin_files) and not self.update_skin:
             return
-        player = Player(self.user["user"]["players"][0]["uuid"])
-        await player.initialize()
-        skin = player.skin
-        skin_face = await skin.render_head(vr=0, hr=0)
-        skin_full = await skin.render_skin(
-            vr=-20, hr=30, vrll=30, vrrl=-30, vrla=-30, vrra=30, aa=True
-        )
-        skin_full_back = await skin.render_skin(
-            vr=-20, hr=150, vrll=-30, vrrl=30, vrla=30, vrra=-30, aa=True
-        )
-        skin_face.save(skin_files[0])
-        skin_full.thumbnail((216, 392))
-        skin_full_back.thumbnail((216, 392))
-        skin_full.save(skin_files[1])
-        skin_full_back.save(skin_files[2])
+        uuid = self.user.get("user", {}).get("players", [{}])[0].get("uuid")
+        face = f"{self.skin_url}/avatars/{uuid}"
+        player = f"{self.skin_url}/player/{uuid}"
+        player_back = f"{self.skin_url}/player-back/{uuid}"
+        skin_list = [face, player, player_back]
+        for skin_file, skin_url in zip(skin_files, skin_list):
+            if not os.path.exists(skin_file):
+                resp = await self.__render_skin(skin_url)
+                if resp.status_code != 200:
+                    return
+                with open(skin_file, "wb") as f:
+                    f.write(resp.content)
         self.update_skin = False
 
+    async def __render_skin(self, skin_url):
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(skin_url)
+            if resp.status_code != 200:
+                return resp
+            return resp
 
 account = Auth()

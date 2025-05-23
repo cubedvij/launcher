@@ -24,6 +24,7 @@ LAUNCHER_NAME = "Кубічний Лаунчер"
 WINDOW_SIZE = (900, 564)
 
 AUTH_URL = "https://auth.cubedvij.pp.ua"
+SKIN_RENDER_URL = "https://skins.cubedvij.pp.ua"
 SERVER_IP = "play.cubedvij.pp.ua"
 AUTHLIB_INJECTOR_URL = "https://auth.cubedvij.pp.ua/authlib-injector"
 CHANGELOG_URL = (
