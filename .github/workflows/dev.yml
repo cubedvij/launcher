@@ -31,13 +31,7 @@ jobs:
     steps:
       - name : Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Environment Variables
-        if: ${{ !inputs.disable-cache }}
-        shell: bash
-        run: |
-          echo "NUITKA_CACHE_DIR=${{ github.action_path }}/nuitka/cache" >> $GITHUB_ENV
-
+        
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
@@ -46,23 +40,6 @@ jobs:
 
       - name: Install the project
         run: uv sync --all-extras --dev
-
-      - name: Install ccache
-        if: ${{ runner.os == 'Linux' }}
-        shell: bash
-        run: |
-          sudo apt-get install -y ccache
-
-      - name: Cache Nuitka cache directory
-        if: ${{ !inputs.disable-cache }}
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.NUITKA_CACHE_DIR }}
-          key: ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-nuitka-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-python-${{ env.PYTHON_VERSION }}-
-            ${{ runner.os }}-${{ runner.arch }}-python-
-            ${{ runner.os }}-${{ runner.arch }}-
 
       - name: Build with Nuitka
         shell: bash
