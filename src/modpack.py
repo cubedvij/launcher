@@ -78,8 +78,8 @@ class Modpack:
         try:
             response = httpx.get(self._index_url, follow_redirects=True)
             response.raise_for_status()
-            with open(self._modpack_index_file, "wb") as f:
-                f.write(response.content)
+            # with open(self._modpack_index_file, "wb") as f:
+            #     f.write(response.content)
             json_data = json.loads(response.text)
             self.modpack_index = json_data
             self.remote_version = json_data.get("versionId")
@@ -162,7 +162,7 @@ class Modpack:
         modpack_directory: str | os.PathLike | None = None,
         callback: CallbackDict | None = None,
         mrpack_install_options: MrpackInstallOptions | None = None,
-        max_workers: int | None = 8
+        max_workers: int | None = 8,
     ) -> None:
         # https://codeberg.org/JakobDev/minecraft-launcher-lib/src/branch/master/minecraft_launcher_lib/mrpack.py
         minecraft_directory = os.path.abspath(minecraft_directory)
@@ -185,10 +185,10 @@ class Modpack:
 
             # Download the files
             file_list = _filter_mrpack_files(index["files"], mrpack_install_options)
-            
+
             callback.get("setStatus", empty)("Завантаження модів...")
             callback.get("setMax", empty)(len(file_list))
-            
+
             mods = []
             for count, file in enumerate(file_list):
                 full_path = os.path.abspath(
@@ -206,7 +206,12 @@ class Modpack:
             # Download the files in parallel
             count = 0
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = [executor.submit(download_file, mod["url"], mod["path"], sha1=mod["sha1"]) for mod in mods]
+                futures = [
+                    executor.submit(
+                        download_file, mod["url"], mod["path"], sha1=mod["sha1"]
+                    )
+                    for mod in mods
+                ]
                 for future in futures:
                     future.result()
                     count += 1

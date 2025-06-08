@@ -65,11 +65,11 @@ class MainPage(ft.View):
             self.page.update()
 
     async def _check_launcher_updates(self):
-        while True:
-            if await updater.check_for_update():
-                self.page.open(self._update_banner)
-                self.page.update()
-            await asyncio.sleep(60)
+        if await updater.check_for_update():
+            logging.info(f"Latest version found: {updater.latest_version}")
+            logging.info(f"Latest download URL: {updater.latest_download_url}")
+            self.page.open(self._update_banner)
+            self.page.update()
 
     async def _check_modpack_update_task(self):
         while True:

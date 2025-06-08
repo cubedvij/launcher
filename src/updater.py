@@ -53,8 +53,6 @@ class Updater:
                     self.latest_download_url = asset["browser_download_url"]
                     self.executable = asset["name"]
                     break
-            logging.info(f"Latest version found: {self.latest_version}")
-            logging.info(f"Latest download URL: {self.latest_download_url}")
 
         return self.latest_version
 
