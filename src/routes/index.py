@@ -77,15 +77,16 @@ class MainPage(ft.View):
             await asyncio.to_thread(self._check_modpack_update)
 
     def _check_modpack_update(self):
-        modpack._fetch_latest_index()
-        if not modpack.is_up_to_date():
-            self._installed_version.value = (
-                f"Встановлена версія: {modpack.installed_version}"
-            )
-            self._latest_version.value = f"Остання версія: {modpack.remote_version}"
-            # update changelog
-            self._get_changelog()
-            self.page.update()  # Check every 1 minutes
+        if self.page and not self.page.window.minimized:
+            modpack._fetch_latest_index()
+            if not modpack.is_up_to_date():
+                self._installed_version.value = (
+                    f"Встановлена версія: {modpack.installed_version}"
+                )
+                self._latest_version.value = f"Остання версія: {modpack.remote_version}"
+                # update changelog
+                self._get_changelog()
+                self.page.update()
 
     @staticmethod
     async def update_user_info(event: ft.RouteChangeEvent):
@@ -399,6 +400,8 @@ class MainPage(ft.View):
                 await asyncio.sleep(10)
 
     def _update_server_status(self):
+        if self.page is None or self.page.window.minimized:
+            return
         try:
             server = MineStat(
                 address=SERVER_IP, port=25565, query_protocol=SlpProtocols.LEGACY
