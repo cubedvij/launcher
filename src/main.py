@@ -2,6 +2,7 @@ import flet as ft
 
 from routes import LoginPage, MainPage, ProfilePage, RegisterPage, SettingsPage
 from settings import settings
+from updater import updater
 from utils import setup_theme_settings
 from config import (
     LAUNCHER_NAME,
@@ -15,9 +16,10 @@ async def main(page: ft.Page):
     page.window.width, page.window.height = WINDOW_SIZE
     page.window.min_width, page.window.min_height = WINDOW_SIZE
     page.window.center()
-
+    
     page.theme_mode = settings.launcher_theme
-
+    updater.clear_old_meipass()
+    
     setup_theme_settings(
         page,
         settings.launcher_color,

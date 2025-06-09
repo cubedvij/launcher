@@ -82,7 +82,7 @@ class Updater:
         logging.info(f"Copied _MEIPASS to temporary directory: {MEIPASS_FOLDER_NAME}")
 
     def replace_current_version(self):
-        # self.copy_meipass()
+        self.copy_meipass()
         # make new subprocess to replace the current version with wait 5 seconds and open the launcher
         if SYSTEM_OS == "Windows":
             subprocess.Popen(
