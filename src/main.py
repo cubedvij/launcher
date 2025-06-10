@@ -5,6 +5,7 @@ from settings import settings
 from updater import updater
 from utils import setup_theme_settings
 from config import (
+    _COMPILED,
     LAUNCHER_NAME,
     LAUNCHER_VERSION,
     WINDOW_SIZE,
@@ -18,7 +19,8 @@ async def main(page: ft.Page):
     page.window.center()
     
     page.theme_mode = settings.launcher_theme
-    updater.clear_old_meipass()
+    if _COMPILED:
+        updater.clear_old_meipass()
     
     setup_theme_settings(
         page,
