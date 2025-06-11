@@ -32,7 +32,6 @@ class Updater:
         if "dev" in self.version or not _COMPILED:
             # Don't check for updates in dev build or if not compiled
             return False
-        self.clear_old_meipass()
         self.update_available = (
             await self.get_latest_version() != self.version
             and self.latest_version != ""
@@ -49,7 +48,11 @@ class Updater:
             self.latest_version = self.latest_release["tag_name"]
             # set latest_download_url to the first asset in the assets list by SYSTEM_OS
             for asset in self.latest_release["assets"]:
-                if asset["name"] == os.path.basename(sys.executable):
+                if SYSTEM_OS == "Windows" and asset["name"].endswith(".exe"):
+                    self.latest_download_url = asset["browser_download_url"]
+                    self.executable = asset["name"]
+                    break
+                elif SYSTEM_OS == "Linux" and not asset["name"].endswith(".exe"):
                     self.latest_download_url = asset["browser_download_url"]
                     self.executable = asset["name"]
                     break
@@ -82,6 +85,7 @@ class Updater:
         logging.info(f"Copied _MEIPASS to temporary directory: {MEIPASS_FOLDER_NAME}")
 
     def replace_current_version(self):
+        self.clear_old_meipass()
         self.copy_meipass()
         # make new subprocess to replace the current version with wait 5 seconds and open the launcher
         if SYSTEM_OS == "Windows":
