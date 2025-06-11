@@ -529,9 +529,9 @@ class MainPage(ft.View):
             self._download_callback,
         ):
             logging.error("Failed to install modpack.")
-            self._set_progress_text("Не вдалося встановити модпак.")
+            self._set_progress_text("Не вдалося встановити модпак. Перевірте лог.")
             self._progress_bar.visible = False
-            self._progress_text.visible = False
+            # self._progress_text.visible = False
             self._play_button_enable()
             self._check_game_button_enable()
             return
@@ -540,7 +540,7 @@ class MainPage(ft.View):
         self._set_progress_text("Модпак встановлено")
 
         self._progress_bar.visible = False
-        self._progress_text.visible = False
+        # self._progress_text.visible = False
 
         self._check_game_button_enable()
         self._play_button_enable()
@@ -568,9 +568,10 @@ class MainPage(ft.View):
         modpack.update(
             self._download_callback,
         )
-
+        logging.info("Modpack updated successfully.")
+        self._set_progress_text("Модпак оновлено")
         self._progress_bar.visible = False
-        self._progress_text.visible = False
+        # self._progress_text.visible = False
 
         self._check_game_button_enable()
         self._play_button_enable()

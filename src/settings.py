@@ -9,7 +9,7 @@ class Settings:
         self._settings_file = os.path.join(APPDATA_FOLDER, "settings.json")
         # Game settings
         self.minecraft_directory = APPDATA_FOLDER / ".minecraft"
-        self.minecraft_options = os.path.join(self.minecraft_directory, "options.txt")
+        self.minecraft_options = self.minecraft_directory / "options.txt"
         self.launcher_theme = "system"
         self.launcher_color = "deeppurple"
         self.launcher_border_radius = 8
@@ -56,17 +56,8 @@ class Settings:
                 self.minecraft_directory = minecraft_data.get(
                     "directory", str(self.minecraft_directory)
                 )
-                self.minecraft_directory = os.path.abspath(self.minecraft_directory)
-                self.minecraft_options = os.path.join(
-                    self.minecraft_directory, "options.txt"
-                )
-
                 if not os.path.exists(self.minecraft_directory):
                     os.makedirs(self.minecraft_directory)
-                if not os.path.exists(self.minecraft_options):
-                    with open(self.minecraft_options, "w") as f:
-                        f.write("fullscreen:false\n")
-                self._set_fullscreen()
         else:
             self.save()
 
@@ -96,15 +87,9 @@ class Settings:
         }
         with open(self._settings_file, "w") as f:
             json.dump(data, f, indent=4)
-
         if not os.path.exists(self.minecraft_directory):
             # Create the directory if it doesn't exist
             os.makedirs(self.minecraft_directory)
-        self.minecraft_options = os.path.join(self.minecraft_directory, "options.txt")
-        if not os.path.exists(self.minecraft_options):
-            # Create the file if it doesn't exist
-            with open(self.minecraft_options, "w") as f:
-                f.write("fullscreen:false\n")
         self._set_fullscreen()
 
     def _set_fullscreen(self):
@@ -118,10 +103,14 @@ class Settings:
         with open(self.minecraft_options, "r") as f:
             lines = f.readlines()
 
+        # apply fullscreen setting
         with open(self.minecraft_options, "w") as f:
             for line in lines:
                 if line.startswith("fullscreen:"):
                     f.write(f"fullscreen:{str(self.fullscreen).lower()}\n")
+                else:
+                    f.write(line)
+                    
 
 
 settings = Settings()

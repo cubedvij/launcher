@@ -50,7 +50,7 @@ class Modpack:
         executor.submit(self._on_load)
 
     def _on_load(self) -> None:
-        self._ensure_modpack_exists()
+        # self._ensure_modpack_exists()
         self._load_modpack_info()
 
     def _setup_paths(self) -> None:
@@ -242,8 +242,8 @@ class Modpack:
             self.extract_overrides(modpack_directory, zf)
 
             # apply resource packs from overrides to options.txt
-            self.configure_resource_packs(minecraft_directory, modpack_directory)
-            
+            self.configure_resource_packs(minecraft_directory, zf)
+
             if mrpack_install_options.get("skipDependenciesInstall"):
                 return
 
@@ -254,125 +254,157 @@ class Modpack:
             forge_version = None
             FORGE_DOWNLOAD_URL = "https://maven.minecraftforge.net/net/minecraftforge/forge/{version}/forge-{version}-installer.jar"
             for current_forge_version in (
-                    f"{index['dependencies']['minecraft']}-{index['dependencies']['forge']}",
-                    f"{index['dependencies']['minecraft']}-{index['dependencies']['forge']}-{index['dependencies']['minecraft']}",
-                ):
+                f"{index['dependencies']['minecraft']}-{index['dependencies']['forge']}",
+                f"{index['dependencies']['minecraft']}-{index['dependencies']['forge']}-{index['dependencies']['minecraft']}",
+            ):
                 if (
-                        httpx.head(
-                            FORGE_DOWNLOAD_URL.replace(
-                                "{version}", current_forge_version
-                            )
-                        ).status_code
-                        == 200
-                    ):
+                    httpx.head(
+                        FORGE_DOWNLOAD_URL.replace("{version}", current_forge_version)
+                    ).status_code
+                    == 200
+                ):
                     forge_version = current_forge_version
                     break
             else:
                 raise VersionNotFound(index["dependencies"]["forge"])
 
                 # callback.get("setStatus", empty)(f"Installing Forge {forge_version}")
-            install_forge_version(
-                    forge_version, minecraft_directory, callback=callback
-                )
+            install_forge_version(forge_version, minecraft_directory, callback=callback)
 
         if "fabric-loader" in index["dependencies"]:
-                # callback.get("setStatus", empty)(
-                #     f"Встановлення Fabric {index['dependencies']['fabric-loader']}"
-                # )
+            # callback.get("setStatus", empty)(
+            #     f"Встановлення Fabric {index['dependencies']['fabric-loader']}"
+            # )
             install_fabric(
-                    index["dependencies"]["minecraft"],
-                    minecraft_directory,
-                    loader_version=index["dependencies"]["fabric-loader"],
-                    callback=callback,
-                )
+                index["dependencies"]["minecraft"],
+                minecraft_directory,
+                loader_version=index["dependencies"]["fabric-loader"],
+                callback=callback,
+            )
 
         if "quilt-loader" in index["dependencies"]:
-                # callback.get("setStatus", empty)(
-                #     f"Встановлення Quilt {index['dependencies']['quilt-loader']}"
-                # )
+            # callback.get("setStatus", empty)(
+            #     f"Встановлення Quilt {index['dependencies']['quilt-loader']}"
+            # )
             install_quilt(
-                    index["dependencies"]["minecraft"],
-                    minecraft_directory,
-                    loader_version=index["dependencies"]["quilt-loader"],
-                    callback=callback,
-                )
+                index["dependencies"]["minecraft"],
+                minecraft_directory,
+                loader_version=index["dependencies"]["quilt-loader"],
+                callback=callback,
+            )
 
     def download_mods(self, callback, max_workers, mods):
         count = 0
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = [
-                    executor.submit(
-                        download_file, mod["url"], mod["path"], sha1=mod["sha1"]
-                    )
-                    for mod in mods
-                ]
+                executor.submit(
+                    download_file, mod["url"], mod["path"], sha1=mod["sha1"]
+                )
+                for mod in mods
+            ]
             for future in futures:
                 future.result()
                 count += 1
                 callback.get("setProgress", empty)(count)
 
-    def configure_resource_packs(self, minecraft_directory, modpack_directory):
-        resource_packs = os.listdir(
-                os.path.join(modpack_directory, "resourcepacks")
-            )
+    def configure_resource_packs(
+        self, minecraft_directory, zf: zipfile.ZipFile
+    ) -> None:
+        """Configure resource packs in options.txt."""
+        resource_packs = []
+        for zip_name in zf.namelist():
+            if zip_name.startswith("modpack-main/overrides/resourcepacks/"):
+                # Remove the prefix and get the pack name
+                pack_name = zip_name[len("modpack-main/overrides/resourcepacks/") :]
+                if pack_name.endswith(".zip"):
+                    resource_packs.append(pack_name)
         if resource_packs:
-                # append resource packs to options.txt (not override)
-            options_txt_path = os.path.join(
-                    minecraft_directory, "options.txt"
-                )
+            # append resource packs to options.txt (not override)
+            options_txt_path = os.path.join(minecraft_directory, "options.txt")
+            new_packs = ",".join(
+                [
+                    f'"file/{pack}"' if pack.endswith(".zip") else f'"{pack}"'
+                    for pack in resource_packs
+                ]
+            )
+            # clear empty resource packs
             if os.path.exists(options_txt_path):
                 with open(options_txt_path, "r") as f:
                     options_txt = f.readlines()
 
-                    # Find the line that starts with resourcePacks
+                # Find the line that starts with resourcePacks
                 for i, line in enumerate(options_txt):
                     if line.startswith("resourcePacks:"):
-                            # Append the resource packs to the line
-                        existing_packs = line.strip().split(":")[1]
-                        new_packs = ",".join(
-                                [f'"{pack}"' for pack in resource_packs]
+                        # Append the resource packs to the line
+                        existing_packs = line.strip().split("resourcePacks:")[1].strip()
+                        existing_packs = (
+                            existing_packs.strip("[]")
+                            .replace('"', "")
+                            .replace(" ", "")
+                            .split(",")
+                        )
+
+                        # Keep the first pack
+                        if existing_packs:
+                            resource_packs + existing_packs
+                            # Remove duplicates
+                            resource_packs = list(set(resource_packs))
+                        # Join the packs into a single string
+                        if resource_packs:
+                            # Create the new line with the resource packs
+                            packs = ",".join(
+                                [
+                                    f'"file/{pack}"'
+                                    if pack.endswith(".zip")
+                                    else f'"{pack}"'
+                                    for pack in resource_packs
+                                ]
                             )
-                        options_txt[i] = f"resourcePacks:[{existing_packs},{new_packs}]\n"
+                            options_txt[i] = f"resourcePacks:[{packs}]\n"
                         break
                 else:
-                        # If no such line exists, create it
-                    options_txt.append(
-                            f"resourcePacks:[{','.join([f'\"{pack}\"' for pack in resource_packs])}]\n"
-                        )
+                    # If no such line exists, create it
+                    options_txt.append(f"resourcePacks:[{new_packs}]\n")
 
                     # Write the modified options.txt back
                 with open(options_txt_path, "w") as f:
                     f.writelines(options_txt)
+            # If options.txt does not exist, create it with the resource packs
+            else:
+                with open(options_txt_path, "w") as f:
+                    f.write(f"resourcePacks:[{new_packs}]\n")
 
-    def extract_overrides(self, modpack_directory, zf):
+    def extract_overrides(self, modpack_directory, zf: zipfile.ZipFile) -> None:
         for zip_name in zf.namelist():
-                # Check if the entry is in the overrides and if it is a file
+            # Check if the entry is in the overrides and if it is a file
             if (
-                    not zip_name.startswith("modpack-main/overrides/")
-                    and not zip_name.startswith("modpack-main/client-overrides/")
-                ) or zf.getinfo(zip_name).file_size == 0:
+                not zip_name.startswith("modpack-main/overrides/")
+                and not zip_name.startswith("modpack-main/client-overrides/")
+            ) or zf.getinfo(zip_name).file_size == 0:
                 continue
 
-                # Remove the overrides at the start of the Name
+            # Remove the overrides at the start of the Name
             if zip_name.startswith("modpack-main/client-overrides/"):
                 file_name = zip_name[len("modpack-main/client-overrides/") :]
             else:
                 file_name = zip_name[len("modpack-main/overrides/") :]
 
-                # Constructs the full Path
+            # Constructs the full Path
             full_path = os.path.abspath(os.path.join(modpack_directory, file_name))
 
             check_path_inside_minecraft_directory(modpack_directory, full_path)
 
-                # Skip extracting options.txt if it already exists
-            if os.path.basename(full_path) == "options.txt" and os.path.exists(full_path):
+            # Skip extracting options.txt if it already exists
+            if os.path.basename(full_path) == "options.txt" and os.path.exists(
+                full_path
+            ):
                 continue
 
             try:
                 os.makedirs(os.path.dirname(full_path))
             except FileExistsError:
                 pass
-                
+
             with open(full_path, "wb") as f:
                 f.write(zf.read(zip_name))
 
@@ -381,8 +413,7 @@ class Modpack:
     ) -> bool:
         """Install the modpack to the specified Minecraft directory."""
         try:
-            if not self._modpack_file.exists():
-                raise FileNotFoundError("Modpack file does not exist")
+            self._ensure_modpack_exists()
 
             # Install the modpack
             self.install_mrpack(
@@ -398,6 +429,7 @@ class Modpack:
             self.installed_version = self.remote_version
             # Save the index file for version tracking
             self._save_modpack_version()
+            self._save_index_etag()
             self._clear_modpack_file()
             logging.info(f"Modpack {self.name} installed successfully.")
             return True
