@@ -44,10 +44,11 @@ class Modpack:
 
         self._fetch_latest_index(force=True)
         self._get_installed_modpack_version()
+        self._load_modpack_info()
         # self._ensure_modpack_exists()
         # run on thread - self._ensure_modpack_exists()
-        executor = ThreadPoolExecutor(max_workers=1)
-        executor.submit(self._on_load)
+        # executor = ThreadPoolExecutor(max_workers=1)
+        # executor.submit(self._on_load)
 
     def _on_load(self) -> None:
         # self._ensure_modpack_exists()
@@ -491,7 +492,12 @@ class Modpack:
 
         # self._save_modpack_index()
         self._load_modpack_info()  # Refresh modpack info
-
+        self._save_modpack_version()
+        self._save_index_etag()
+        self._clear_modpack_file()
+        
+        logging.info(f"Modpack {self.name} updated to version {self.remote_version}.")
+        
     def _clean_old_mods(self) -> None:
         """Remove mods that are no longer needed."""
         mods_dir = os.path.join(settings.minecraft_directory, "mods")

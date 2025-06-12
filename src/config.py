@@ -27,6 +27,8 @@ WINDOW_SIZE = (900, 564)
 
 AUTH_URL = "https://auth.cubedvij.pp.ua"
 SKIN_RENDER_URL = "https://skins.cubedvij.pp.ua"
+STATS_URL = "https://stats.cubedvij.pp.ua"
+STATS_API_VERSION = "v1"
 SERVER_IP = "play.cubedvij.pp.ua"
 AUTHLIB_INJECTOR_URL = "https://auth.cubedvij.pp.ua/authlib-injector"
 CHANGELOG_URL = (

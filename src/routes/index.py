@@ -15,6 +15,7 @@ from auth import account
 from modpack import modpack
 from authlib import authlib
 from updater import updater
+from stats import stats
 from config import (
     AUTHLIB_INJECTOR_URL,
     BASE_PATH,
@@ -42,10 +43,42 @@ class MainPage(ft.View):
             "setMax": lambda max: self._set_max(max),
         }
         self.build_ui()
-        self.page.run_task(self._server_status_update)
-        self.page.run_task(self._check_launcher_updates)
-        self.page.run_task(self._check_modpack_update_task)
+        self._latest_tasks_inited = None
+        self.page.run_task(self.init_tasks)
         self.page.on_keyboard_event = self.on_keyboard_event
+        self.page.window.on_event = self.on_window_event
+
+    async def init_tasks(self):
+        while True:
+            if self._latest_tasks_inited and (
+                self.page.loop.time() - self._latest_tasks_inited < 60
+            ):
+                await asyncio.sleep(60)
+            break
+        self._server_status_task = self.page.run_task(self._server_status_update)
+        self._check_launcher_updates_task = self.page.run_task(
+            self._check_launcher_updates
+        )
+        self._check_modpack_update_task = self.page.run_task(
+            self._check_modpack_update_async
+        )
+        self._playtime_update_task = self.page.run_task(self._playtime_update)
+        self._latest_tasks_inited = self.page.loop.time()
+
+    async def on_window_event(self, event: ft.WindowEvent):
+        logging.info(f"Window event: {event.type}")
+        if (
+            event.type == ft.WindowEventType.MINIMIZE
+            or event.type == ft.WindowEventType.HIDE
+        ):
+            # kill all tasks when window is minimized
+            self._server_status_task.cancel()
+            self._check_launcher_updates_task.cancel()
+            self._check_modpack_update_task.cancel()
+            self._playtime_update_task.cancel()
+        elif event.type == ft.WindowEventType.FOCUS or event.type == ft.WindowEventType.RESTORE:
+            # restart tasks when window is restored
+            await self.init_tasks()
 
     async def on_keyboard_event(self, event: ft.KeyboardEvent):
         # check iddqd
@@ -71,22 +104,30 @@ class MainPage(ft.View):
             self.page.open(self._update_banner)
             self.page.update()
 
-    async def _check_modpack_update_task(self):
+    async def _check_modpack_update_async(self):
+        await asyncio.to_thread(self._check_modpack_update)
         while True:
             await asyncio.sleep(60)
             await asyncio.to_thread(self._check_modpack_update)
 
     def _check_modpack_update(self):
-        if self.page and not self.page.window.minimized:
+        if self.page:
             modpack._fetch_latest_index()
-            if not modpack.is_up_to_date():
-                self._installed_version.value = (
-                    f"Встановлена версія: {modpack.installed_version}"
+            if modpack.is_up_to_date():
+                return
+            if modpack.installed_version == "unknown":
+                self._version_tooltip.message = (
+                    "Модпак не встановлено. Натисніть, щоб встановити його."
                 )
-                self._latest_version.value = f"Остання версія: {modpack.remote_version}"
-                # update changelog
-                self._get_changelog()
+                self._play_button_install()
                 self.page.update()
+                return
+
+            self._version_tooltip.message = f"Доступне оновлення: {modpack.installed_version} -> {modpack.remote_version}"
+            self._play_button_update()
+            # update changelog
+            self._get_changelog()
+            self.page.update()
 
     @staticmethod
     async def update_user_info(event: ft.RouteChangeEvent):
@@ -262,9 +303,13 @@ class MainPage(ft.View):
                 ),
             ],
         )
+        self._version_tooltip = ft.Tooltip(
+            f"Встановлено останню версію: {modpack.installed_version}",
+        )
         self._play_button = ft.FloatingActionButton(
             icon=ft.Icons.PLAY_ARROW,
             text="Грати",
+            tooltip=self._version_tooltip,
             width=160,
             on_click=self._check_game,
         )
@@ -302,23 +347,6 @@ class MainPage(ft.View):
             visible=False,
         )
         self._progress_bar = ft.ProgressBar(value=0, visible=False)
-        self._installed_version = ft.Text(
-            f"Встановлена версія: {modpack.installed_version}",
-            size=12,
-        )
-        self._latest_version = ft.Text(
-            f"Остання версія: {modpack.remote_version}",
-            size=12,
-        )
-        self._version_column = ft.Column(
-            controls=[
-                self._installed_version,
-                self._latest_version,
-            ],
-            spacing=4,
-            alignment=ft.MainAxisAlignment.END,
-            horizontal_alignment=ft.CrossAxisAlignment.END,
-        )
         self._server_status = ft.Column(
             controls=[
                 ft.Row(
@@ -357,6 +385,41 @@ class MainPage(ft.View):
             alignment=ft.MainAxisAlignment.END,
             horizontal_alignment=ft.CrossAxisAlignment.START,
         )
+        self._playtime_text = ft.Text(
+            "Час на сервері: -",
+            size=12,
+        )
+        self._latest_online_text = ft.Text(
+            "Останній вхід: -",
+            size=12,
+        )
+        self._playtime = ft.Column(
+            controls=[
+                ft.Row(
+                    controls=[
+                        ft.Icon(
+                            name=ft.Icons.ACCESS_TIME,
+                            size=16,
+                        ),
+                        self._playtime_text,
+                    ],
+                    spacing=4,
+                ),
+                ft.Row(
+                    controls=[
+                        ft.Icon(
+                            name=ft.Icons.PLAY_ARROW,
+                            size=16,
+                        ),
+                        self._latest_online_text,
+                    ],
+                    spacing=4,
+                ),
+            ],
+            spacing=4,
+            alignment=ft.MainAxisAlignment.END,
+            horizontal_alignment=ft.CrossAxisAlignment.START,
+        )
         self.bottom_appbar = ft.BottomAppBar(
             content=ft.Row(
                 controls=[
@@ -368,9 +431,9 @@ class MainPage(ft.View):
                         expand=True,
                     ),
                     self._server_status,
-                    self._version_column,
+                    self._playtime,
+                    # self._version_column,
                 ],
-                spacing=8,
                 expand=True,
             ),
         )
@@ -399,28 +462,47 @@ class MainPage(ft.View):
                 logging.info(f"Error updating server status: {e}")
                 await asyncio.sleep(10)
 
+    async def _playtime_update(self):
+        while True:
+            try:
+                if self.page is None:
+                    return
+                player_stats = await stats.get_player_stats(
+                    account.user["user"]["players"][0]["uuid"]
+                )
+                player_stats = player_stats.get("info", {})
+                playtime = player_stats.get("playtime", "0")
+                last_seen = player_stats.get("last_seen", "Ніколи")
+                if player_stats is not None:
+                    self._playtime_text.value = f"Час на сервері: {playtime}"
+                    self._latest_online_text.value = f"Останній вхід: {last_seen}"
+            except Exception as e:
+                logging.error(f"Error updating playtime: {e}")
+            await asyncio.sleep(60)  # Update every minute
+
     def _update_server_status(self):
-        if self.page is None or self.page.window.minimized:
+        if self.page is None:
             return
         try:
             server = MineStat(
                 address=SERVER_IP, port=25565, query_protocol=SlpProtocols.LEGACY
             )
-            online = server.online
-            players = server.current_players if online else 0
         except Exception as e:
             logging.warning(f"Failed to fetch server status: {e}")
-            online = False
-            players = 0
+            return
 
-        if online:
+        if server.online:
             self._server_status.controls[0].controls[0].color = ft.Colors.GREEN
-            self._server_status.controls[0].controls[1].value = "Сервер онлайн"
-            self._server_status.controls[1].controls[2].value = str(players)
+            self._server_status.controls[0].controls[
+                1
+            ].value = f"Сервер онлайн ({server.latency} мс)"
+            self._server_status.controls[1].controls[
+                2
+            ].value = f"{server.current_players}/{server.max_players}"
         else:
             self._server_status.controls[0].controls[0].color = ft.Colors.RED
             self._server_status.controls[0].controls[1].value = "Сервер офлайн"
-            self._server_status.controls[1].controls[2].value = "0"
+            self._server_status.controls[1].controls[2].value = "-"
 
         if self.page:
             self.page.update()
@@ -537,21 +619,17 @@ class MainPage(ft.View):
             return
 
         logging.info("Modpack installed successfully.")
-        self._set_progress_text("Модпак встановлено")
+        # self._set_progress_text("Модпак встановлено")
 
         self._progress_bar.visible = False
-        # self._progress_text.visible = False
+        self._progress_text.visible = False
 
         self._check_game_button_enable()
         self._play_button_enable()
-        # update version column
-        self._version_column.controls[
-            0
-        ].value = f"Встановлена версія: {modpack.installed_version}"
-        self._version_column.controls[
-            1
-        ].value = f"Остання версія: {modpack.remote_version}"
-
+        # update version tooltip
+        self._version_tooltip.message = (
+            f"Встановлено останню версію: {modpack.installed_version}"
+        )
         if self.page is not None:
             self.page.update()
 
@@ -606,19 +684,23 @@ class MainPage(ft.View):
         self.page.update()
 
     def _set_progress_text(self, status: str):
-        self._progress_text.value = status
+        self._progress_text.value = status[:50] + "..." if len(status) > 50 else status
+        if self._progress_text is None or self.page is None:
+            return
         self._progress_text.update()
 
     def _set_progress(self, progress: int):
         if self._max_progress != 0:
             self._progress_bar.value = progress / self._max_progress
-            self._progress_bar.update()
+        if self.page is None or self._progress_bar is None:
+            return
+        self._progress_bar.update()
 
     def _play_button_disable(self):
         self._play_button.disabled = True
-        self._play_button.text = "Завантаження..."
+        self._play_button.text = "Завантаження"
         self._play_button.bgcolor = ft.Colors.GREY_800
-        self._play_button.icon = ft.Icons.CLOUD_DOWNLOAD
+        self._play_button.icon = ft.Icons.DOWNLOADING
 
     def _play_button_enable(self):
         self._play_button.disabled = False
@@ -633,6 +715,20 @@ class MainPage(ft.View):
         self._play_button.bgcolor = ft.Colors.RED_ACCENT_700
         self._play_button.icon = ft.Icons.STOP
         self._play_button.on_click = self._stop_game
+
+    def _play_button_update(self):
+        self._play_button.disabled = False
+        self._play_button.text = "Оновити"
+        self._play_button.bgcolor = ft.Colors.PRIMARY_CONTAINER
+        self._play_button.icon = ft.Icons.UPDATE
+        self._play_button.on_click = self._update_modpack
+
+    def _play_button_install(self):
+        self._play_button.disabled = False
+        self._play_button.text = "Встановити"
+        self._play_button.bgcolor = ft.Colors.PRIMARY_CONTAINER
+        self._play_button.icon = ft.Icons.DOWNLOAD
+        self._play_button.on_click = self._force_install_game
 
     def _check_game_button_disable(self):
         self._check_game_button.disabled = True
@@ -671,6 +767,8 @@ class MainPage(ft.View):
     def _set_max(self, max: int):
         self._max_progress = max
         self._progress_bar.value = 0
+        if self.page is None or self._progress_bar is None:
+            return
         self._progress_bar.update()
 
     def _open_link(self, link: str):
