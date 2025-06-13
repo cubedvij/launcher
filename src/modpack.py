@@ -9,7 +9,7 @@ from typing import Callable, Dict, Optional, Tuple
 
 import httpx
 
-from config import APPDATA_FOLDER, MODPACK_REPO_URL
+from config import APPDATA_FOLDER, MODPACK_REPO_URL, MODPACK_INDEX_URL
 from settings import settings
 from minecraft_launcher_lib._helper import (
     check_path_inside_minecraft_directory,
@@ -30,9 +30,8 @@ from minecraft_launcher_lib.types import CallbackDict
 
 class Modpack:
     def __init__(self):
-        self._repo_url = MODPACK_REPO_URL
-        self._index_url = f"{self._repo_url}/raw/refs/heads/main/modrinth.index.json"
-        self._zip_url = f"{self._repo_url}/archive/refs/heads/main.zip"
+        self._index_url = MODPACK_INDEX_URL
+        self._zip_url = f"{MODPACK_REPO_URL}/archive/refs/heads/main.zip"
         self._modpack_index_file = None
         self.name = "cubedvij"
         self.installed_version = None
@@ -42,9 +41,9 @@ class Modpack:
         self._setup_paths()
         self._etag = self._get_saved_index_etag()
 
-        self._fetch_latest_index(force=True)
+        # self._fetch_latest_index(force=True)
         self._get_installed_modpack_version()
-        self._load_modpack_info()
+        # self._load_modpack_info()
         # self._ensure_modpack_exists()
         # run on thread - self._ensure_modpack_exists()
         # executor = ThreadPoolExecutor(max_workers=1)
@@ -223,7 +222,7 @@ class Modpack:
             callback.get("setMax", empty)(len(file_list))
 
             mods = []
-            for count, file in enumerate(file_list):
+            for _, file in enumerate(file_list):
                 full_path = os.path.abspath(
                     os.path.join(modpack_directory, file["path"])
                 )
@@ -235,6 +234,9 @@ class Modpack:
                         "sha1": file["hashes"]["sha1"],
                     }
                 )
+
+            # Clean old mods
+            self._clean_old_mods()
 
             # Download the files in parallel
             self.download_mods(callback, max_workers, mods)
@@ -468,9 +470,6 @@ class Modpack:
         if not self._download_modpack():
             raise RuntimeError("Failed to download modpack update")
 
-        # Clean old mods
-        self._clean_old_mods()
-
         options = {
             "skipDependenciesInstall": True,
         }
@@ -506,7 +505,7 @@ class Modpack:
                 mod_path = os.path.join(mods_dir, mod)
                 if os.path.isfile(mod_path) and mod.endswith(".jar"):
                     os.remove(mod_path)
-                    logging.info(f"Removed old mod: {mod_path}")
+            logging.info("Old mods cleaned up successfully.")
         else:
             logging.info("Mods directory does not exist, skipping cleanup.")
 

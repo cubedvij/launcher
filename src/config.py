@@ -31,10 +31,17 @@ STATS_URL = "https://stats.cubedvij.pp.ua"
 STATS_API_VERSION = "v1"
 SERVER_IP = "play.cubedvij.pp.ua"
 AUTHLIB_INJECTOR_URL = "https://auth.cubedvij.pp.ua/authlib-injector"
+
+MODPACK_REPO = "cubedvij/modpack"
+
 CHANGELOG_URL = (
-    "https://raw.githubusercontent.com/cubedvij/modpack/refs/heads/main/README.md"
+    f"https://raw.githubusercontent.com/{MODPACK_REPO}/refs/heads/main/README.md"
 )
-MODPACK_REPO_URL = "https://github.com/cubedvij/modpack"
+
+MODPACK_INDEX_URL = (
+    f"https://raw.githubusercontent.com/{MODPACK_REPO}/refs/heads/main/modrinth.index.json"
+)
+MODPACK_REPO_URL = f"https://github.com/{MODPACK_REPO}"
 LATEST_LAUNCHER_RELEASE_URL = (
     "https://api.github.com/repos/cubedvij/launcher/releases/latest"
 )

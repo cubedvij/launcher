@@ -3,7 +3,7 @@
 [![Launcher Release-Build](https://github.com/cubedvij/launcher/actions/workflows/release.yml/badge.svg)](https://github.com/cubedvij/launcher/actions/workflows/release.yml)
 [![Launcher Dev-Build](https://github.com/cubedvij/launcher/actions/workflows/dev.yml/badge.svg)](https://github.com/cubedvij/launcher/actions/workflows/dev.yml)
 
-🎮 Лаунчер для гри на сервері "Кубіний Двіж" 
+🎮 Лаунчер для гри на сервері "Кубічний Двіж" 
 
 <img src="https://github.com/user-attachments/assets/7535707f-41ac-42ef-a1dd-4f3fdbaa7315" width="640" />
 

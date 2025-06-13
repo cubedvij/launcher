@@ -17,7 +17,6 @@ class Stats:
             params={"player": uuid}
         )
         # Raise an error if the request was unsuccessful
-        response.raise_for_status()
         if response.status_code == 403:
             # rate limit exceeded
             return None

@@ -66,17 +66,20 @@ class MainPage(ft.View):
         self._latest_tasks_inited = self.page.loop.time()
 
     async def on_window_event(self, event: ft.WindowEvent):
-        logging.info(f"Window event: {event.type}")
         if (
             event.type == ft.WindowEventType.MINIMIZE
             or event.type == ft.WindowEventType.HIDE
+            or event.type == ft.WindowEventType.BLUR
         ):
             # kill all tasks when window is minimized
             self._server_status_task.cancel()
             self._check_launcher_updates_task.cancel()
             self._check_modpack_update_task.cancel()
             self._playtime_update_task.cancel()
-        elif event.type == ft.WindowEventType.FOCUS or event.type == ft.WindowEventType.RESTORE:
+        elif (
+            event.type == ft.WindowEventType.FOCUS
+            or event.type == ft.WindowEventType.RESTORE
+        ):
             # restart tasks when window is restored
             await self.init_tasks()
 
@@ -105,14 +108,14 @@ class MainPage(ft.View):
             self.page.update()
 
     async def _check_modpack_update_async(self):
-        await asyncio.to_thread(self._check_modpack_update)
+        await asyncio.to_thread(self._check_modpack_update, force=True)
         while True:
             await asyncio.sleep(60)
             await asyncio.to_thread(self._check_modpack_update)
 
-    def _check_modpack_update(self):
+    def _check_modpack_update(self, force: bool = False):
         if self.page:
-            modpack._fetch_latest_index()
+            modpack._fetch_latest_index(force=force)
             if modpack.is_up_to_date():
                 return
             if modpack.installed_version == "unknown":
@@ -457,10 +460,10 @@ class MainPage(ft.View):
         while True:
             try:
                 await asyncio.to_thread(self._update_server_status)
-                await asyncio.sleep(10)
+                await asyncio.sleep(5)
             except Exception as e:
                 logging.info(f"Error updating server status: {e}")
-                await asyncio.sleep(10)
+                await asyncio.sleep(5)
 
     async def _playtime_update(self):
         while True:
@@ -528,10 +531,10 @@ class MainPage(ft.View):
             self._install_minecraft()
         # check if modpack version is latest
         elif not modpack.is_up_to_date():
-            self._update_modpack()
+            self._update_modpack(event)
         # check if modpack installed correctly
         elif not modpack.verify_installation():
-            self._update_modpack()
+            self._update_modpack(event)
         else:
             self._launch_minecraft(modpack.modloader_full)
 
@@ -633,7 +636,7 @@ class MainPage(ft.View):
         if self.page is not None:
             self.page.update()
 
-    def _update_modpack(self):
+    def _update_modpack(self, event: ft.TapEvent):
         logging.info("Updating modpack...")
         self._progress_bar.visible = True
         self._progress_text.visible = True
@@ -654,12 +657,9 @@ class MainPage(ft.View):
         self._check_game_button_enable()
         self._play_button_enable()
         # update version column
-        self._version_column.controls[
-            0
-        ].value = f"Встановлена версія: {modpack.installed_version}"
-        self._version_column.controls[
-            1
-        ].value = f"Остання версія: {modpack.remote_version}"
+        self._version_tooltip.message = (
+            f"Встановлено останню версію: {modpack.installed_version}"
+        )
 
         if self.page is not None:
             self.page.update()
