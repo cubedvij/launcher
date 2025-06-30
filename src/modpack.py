@@ -39,10 +39,9 @@ class Modpack:
         self._modpack_file = None
         self._modpack_path = None
         self._setup_paths()
-        self._etag = self._get_saved_index_etag()
+        self._load_modpack_info()
 
         # self._fetch_latest_index(force=True)
-        self._get_installed_modpack_version()
         # self._load_modpack_info()
         # self._ensure_modpack_exists()
         # run on thread - self._ensure_modpack_exists()
@@ -59,7 +58,7 @@ class Modpack:
         self._modpack_path.mkdir(parents=True, exist_ok=True)
         self._modpack_index_file = self._modpack_path / "modrinth.index.json"
         self._modpack_file = self._modpack_path / f"{self.name}.mrpack"
-        self._modpack_version_file = APPDATA_FOLDER / ".version"
+        self._modpack_version_file = APPDATA_FOLDER / ".version.json"
 
     def _ensure_modpack_exists(self) -> None:
         """Download the modpack if it doesn't exist."""
@@ -68,13 +67,16 @@ class Modpack:
 
     def _load_modpack_info(self) -> None:
         """Load and parse modpack information."""
-        self.minecraft_version = self.modpack_index["dependencies"].get(
-            "minecraft", "unknown"
-        )
-        self.modloader, self.modloader_version = self._get_modloader_info()
+        self._version = self._get_modpack_version()
+        self.installed_version = self._version.get("modpack_version", "unknown")
+        self.minecraft_version = self._version.get("minecraft_version", "unknown")
+        self.modloader = self._version.get("modloader", "unknown")
+        self.modloader_version = self._version.get("modloader_version", "unknown")
         self.modloader_full = (
             f"{self.minecraft_version}-{self.modloader}-{self.modloader_version}"
         )
+        self._etag = self._version.get("etag")
+        self.modpack_index = None
 
     def _fetch_index_etag(self) -> Optional[str]:
         """Fetch the latest index etag from GitHub."""
@@ -86,19 +88,12 @@ class Modpack:
             return None
 
     def _save_index_etag(self) -> None:
-        """Save the current index etag to a file."""
-        if self._etag:
-            etag_file = APPDATA_FOLDER / ".etag"
-            with open(etag_file, "w") as f:
-                f.write(self._etag)
+        """Append the current index etag to a file."""
+        ...
 
     def _get_saved_index_etag(self) -> Optional[str]:
         """Retrieve the saved index etag from a file."""
-        etag_file = APPDATA_FOLDER / ".etag"
-        if etag_file.exists():
-            with open(etag_file, "r") as f:
-                return f.read().strip()
-        return None
+        ...
 
     def _fetch_latest_index(self, force: bool = False) -> None:
         """Fetch the latest index data from GitHub."""
@@ -122,13 +117,6 @@ class Modpack:
             logging.info(f"Error fetching modpack index: {e}")
             self.modpack_index = None
 
-    def _get_installed_modpack_version(self) -> None:
-        """Get the currently installed modpack version."""
-        if self._modpack_version_file.exists():
-            with open(self._modpack_version_file, "r") as f:
-                self.installed_version = f.read().strip()
-        self.installed_version = self.installed_version or "unknown"
-
     def _get_modloader_info(self) -> Tuple[str, str]:
         """Extract modloader information from dependencies."""
         dependencies = self.modpack_index.get("dependencies", {})
@@ -141,8 +129,8 @@ class Modpack:
 
     def is_up_to_date(self) -> bool:
         """Check if the installed modpack is up to date."""
-        if not self.modpack_index:
-            return False
+        # if not self.modpack_index:
+        #     return False
 
         if not self.remote_version:
             return False
@@ -450,8 +438,36 @@ class Modpack:
 
     def _save_modpack_version(self) -> None:
         """Save the modpack version information."""
+        
+        self.installed_version = self.remote_version
+        self.modloader, self.modloader_version = self._get_modloader_info()
+
+        self.modloader_full = (
+            f"{self.minecraft_version}-{self.modloader}-{self.modloader_version}"
+        )
+
+        if not self._modpack_version_file.parent.exists():
+            self._modpack_version_file.parent.mkdir(parents=True)
+
         with open(self._modpack_version_file, "w") as f:
-            f.write(self.remote_version)
+            json.dump(
+                {
+                    "installed_version": self.installed_version,
+                    "minecraft_version": self.minecraft_version,
+                    "modloader": self.modloader,
+                    "modloader_version": self.modloader_version,
+                    "etag": self._etag,
+                },
+                f,
+            )
+
+    def _get_modpack_version(self) -> Dict:
+        """Get the modpack version information."""
+        if not self._modpack_version_file.exists():
+            return {}
+
+        with open(self._modpack_version_file, "r") as f:
+            return json.load(f)
 
     def get_launch_version(self) -> Dict:
         """Get the launch version information for the modpack."""
@@ -487,16 +503,14 @@ class Modpack:
             raise RuntimeError("Modpack installation verification failed")
 
         # Update the installed version
-        self.installed_version = self.remote_version
-
         # self._save_modpack_index()
-        self._load_modpack_info()  # Refresh modpack info
+        # self._load_modpack_info()  # Refresh modpack info
         self._save_modpack_version()
         self._save_index_etag()
         self._clear_modpack_file()
-        
+
         logging.info(f"Modpack {self.name} updated to version {self.remote_version}.")
-        
+
     def _clean_old_mods(self) -> None:
         """Remove mods that are no longer needed."""
         mods_dir = os.path.join(settings.minecraft_directory, "mods")
