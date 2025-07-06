@@ -74,6 +74,9 @@ class Auth:
         return "Помилка сервера або відсутній інтернет"
 
     def login(self, username: str, password: str):
+        api_resp = self.__login(username, password)
+        if api_resp.status_code != 200:
+            return api_resp
         resp = self.yggdrasil_session.post(
             f"{self.base_url}/authenticate",
             json={
@@ -94,9 +97,6 @@ class Auth:
             }
         )
         self.save_account()
-        api_resp = self.__login(username, password)
-        if api_resp.status_code != 200:
-            return api_resp
         return resp
 
     def refresh(self):

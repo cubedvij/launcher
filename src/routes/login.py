@@ -39,7 +39,7 @@ class LoginPage(ft.View):
             "Реєстрація",
             icon=ft.Icons.EDIT_OUTLINED,
             width=300,
-            on_click=lambda _: self.page.go("/register"),
+            on_click=self.register,
         )
 
         self.controls.append(
@@ -62,6 +62,11 @@ class LoginPage(ft.View):
             )
         )
 
+    def register(self, e):
+        self.username.value = ""
+        self.password.value = ""
+        self.page.go("/register")
+
     def login(self, e):
         username = self.username.value.strip()
         password = self.password.value.strip()
@@ -69,27 +74,28 @@ class LoginPage(ft.View):
             response = account.login(username, password)
             if response.status_code != 200:
                 self._status_bar = ft.SnackBar(
-                    ft.Text(response.json()["errorMessage"]),
-                    open=True,
+                    ft.Text(response.json()["message"]),
                     bgcolor=ft.Colors.RED_400,
                     behavior=ft.SnackBarBehavior.FLOATING,
                 )
             else:
                 self._status_bar = ft.SnackBar(
                     ft.Text("Успішно авторизовано!"),
-                    open=True,
                     bgcolor=ft.Colors.GREEN_400,
                     behavior=ft.SnackBarBehavior.FLOATING,
+                    duration=250,
                 )
-
+                # Clear the input fields after successful login
+                self.username.value = ""
+                self.password.value = ""
+                # Redirect to the home page after successful login
                 self.page.go("/")
         else:
             self._status_bar = ft.SnackBar(
                 ft.Text("Заповніть всі поля!"),
-                open=True,
                 bgcolor=ft.Colors.RED_400,
                 behavior=ft.SnackBarBehavior.FLOATING,
             )
-        # e.control.page.overlay.append(status_bar)
         self.page.open(self._status_bar)
+        # Clear the input fields after login attempt
         self.page.update()

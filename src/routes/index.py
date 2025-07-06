@@ -50,8 +50,10 @@ class MainPage(ft.View):
 
     async def init_tasks(self):
         while True:
-            if self._latest_tasks_inited and (
-                self.page.loop.time() - self._latest_tasks_inited < 60
+            if (
+                self._latest_tasks_inited
+                and self.page
+                and (self.page.loop.time() - self._latest_tasks_inited < 60)
             ):
                 await asyncio.sleep(60)
             break
