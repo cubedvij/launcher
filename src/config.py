@@ -32,6 +32,8 @@ STATS_API_VERSION = "v1"
 SERVER_IP = "play.cubedvij.pp.ua"
 AUTHLIB_INJECTOR_URL = "https://auth.cubedvij.pp.ua/authlib-injector"
 
+RULES_URL = "https://telegra.ph/Pravila-serveru-06-05"
+
 MODPACK_REPO = "cubedvij/modpack"
 
 CHANGELOG_URL = (

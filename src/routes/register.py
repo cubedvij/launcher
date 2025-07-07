@@ -1,6 +1,7 @@
 import flet as ft
 
 from auth import account
+from config import RULES_URL
 
 
 class RegisterPage(ft.View):
@@ -30,12 +31,35 @@ class RegisterPage(ft.View):
         )
 
         register_button = ft.ElevatedButton(
-            "Зареєструватися", icon=ft.Icons.PERSON_ADD_ALT, on_click=self.register, width=300
+            "Зареєструватися",
+            icon=ft.Icons.PERSON_ADD_ALT,
+            on_click=self.register,
+            width=300,
         )
         back_button = ft.TextButton(
             "Назад", icon=ft.Icons.ARROW_BACK, on_click=self.go_login, width=300
         )
-
+        rules_agreement_text = ft.Text(
+            disabled=False,
+            spans=[
+                ft.TextSpan(
+                    "Я погоджуюсь з ",
+                ),
+                ft.TextSpan(
+                    "правилами сервера",
+                    ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE),
+                    url=RULES_URL,
+                    on_enter=self.highlight_link,
+                    on_exit=self.unhighlight_link,
+                )
+            ],
+        )
+        self.rules_agreement = ft.Checkbox(
+            label=rules_agreement_text,
+            value=False,
+            width=300,
+        )
+        
         self.controls.append(
             ft.Row(
                 [
@@ -45,6 +69,7 @@ class RegisterPage(ft.View):
                             self.username,
                             self.password,
                             self.confirm_password,
+                            self.rules_agreement,
                             register_button,
                             back_button,
                         ],
@@ -58,6 +83,15 @@ class RegisterPage(ft.View):
         )
 
     def register(self, e: ft.ControlEvent):
+        if self.rules_agreement.value is False:
+            snack_bar = ft.SnackBar(
+                ft.Text("Ви повинні погодитись з правилами!"),
+                bgcolor=ft.Colors.RED_400,
+                open=True,
+            )
+            e.control.page.overlay.append(snack_bar)
+            self.page.update()
+            return
         username = self.username.value.strip()
         password = self.password.value.strip()
         confirm_password = self.confirm_password.value.strip()
@@ -67,7 +101,7 @@ class RegisterPage(ft.View):
             )
         elif len(username) < 4:
             snack_bar = ft.SnackBar(
-                ft.Text("Логін повинно містити не менше 4 символів!"),
+                ft.Text("Логін повинен містити не менше 4 символів!"),
                 bgcolor=ft.Colors.RED_400,
                 open=True,
             )
@@ -99,3 +133,11 @@ class RegisterPage(ft.View):
 
     def go_login(self, e: ft.ControlEvent):
         self.page.go("/login")
+
+    def highlight_link(self, e):
+        e.control.style.color = ft.Colors.BLUE
+        e.control.update()
+
+    def unhighlight_link(self, e):
+        e.control.style.color = None
+        e.control.update()

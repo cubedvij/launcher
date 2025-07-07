@@ -68,7 +68,7 @@ class Modpack:
     def _load_modpack_info(self) -> None:
         """Load and parse modpack information."""
         self._version = self._get_modpack_version()
-        self.installed_version = self._version.get("modpack_version", "unknown")
+        self.installed_version = self._version.get("installed_version", "unknown")
         self.minecraft_version = self._version.get("minecraft_version", "unknown")
         self.modloader = self._version.get("modloader", "unknown")
         self.modloader_version = self._version.get("modloader_version", "unknown")
@@ -416,8 +416,6 @@ class Modpack:
             if not self.verify_installation():
                 raise RuntimeError("Modpack installation verification failed")
 
-            # Update the installed version
-            self.installed_version = self.remote_version
             # Save the index file for version tracking
             self._save_modpack_version()
             self._save_index_etag()
@@ -438,8 +436,11 @@ class Modpack:
 
     def _save_modpack_version(self) -> None:
         """Save the modpack version information."""
-        
+
         self.installed_version = self.remote_version
+        self.minecraft_version = self.modpack_index.get("dependencies", {}).get(
+            "minecraft", "unknown"
+        )
         self.modloader, self.modloader_version = self._get_modloader_info()
 
         self.modloader_full = (
