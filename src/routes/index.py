@@ -475,6 +475,11 @@ class MainPage(ft.View):
                 player_stats = await stats.get_player_stats(
                     account.user["user"]["players"][0]["uuid"]
                 )
+                if player_stats is None:
+                    self._playtime_text.value = "Час на сервері: -"
+                    self._latest_online_text.value = "Останній вхід: -"
+                    await asyncio.sleep(60)
+                    continue
                 player_stats = player_stats.get("info", {})
                 playtime = player_stats.get("playtime", "0")
                 last_seen = player_stats.get("last_seen", "Ніколи")

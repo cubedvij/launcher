@@ -17,10 +17,13 @@ class Stats:
             params={"player": uuid}
         )
         # Raise an error if the request was unsuccessful
-        if response.status_code == 403:
+        if response.status_code != 200:
             # rate limit exceeded
             return None
-        return response.json()
+        try:
+            return response.json()
+        except Exception:
+            return None
     
 
 stats = Stats()
