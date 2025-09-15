@@ -112,7 +112,7 @@ class Modpack:
             )
             self._etag = latest_etag
             self._save_index_etag()
-            logging.info(f"Fetched modpack index: {self.remote_version}")
+            # logging.info(f"Fetched modpack index: {self.remote_version}")
         except httpx.HTTPError as e:
             logging.info(f"Error fetching modpack index: {e}")
             self.modpack_index = None

@@ -64,26 +64,34 @@ class MainPage(ft.View):
         self._check_modpack_update_task = self.page.run_task(
             self._check_modpack_update_async
         )
-        self._playtime_update_task = self.page.run_task(self._playtime_update)
+        # self._playtime_update_task = self.page.run_task(self._playtime_update)
         self._latest_tasks_inited = self.page.loop.time()
 
     async def on_window_event(self, event: ft.WindowEvent):
         if (
             event.type == ft.WindowEventType.MINIMIZE
-            or event.type == ft.WindowEventType.HIDE
-            or event.type == ft.WindowEventType.BLUR
+            # or event.type == ft.WindowEventType.HIDE
+            # or event.type == ft.WindowEventType.BLUR
         ):
             # kill all tasks when window is minimized
             self._server_status_task.cancel()
             self._check_launcher_updates_task.cancel()
             self._check_modpack_update_task.cancel()
-            self._playtime_update_task.cancel()
+            # self._playtime_update_task.cancel()
+            self._latest_tasks_inited = None
         elif (
             event.type == ft.WindowEventType.FOCUS
-            or event.type == ft.WindowEventType.RESTORE
+            # or event.type == ft.WindowEventType.RESTORE
         ):
             # restart tasks when window is restored
-            await self.init_tasks()
+            if self._latest_tasks_inited is None:
+                self.page.run_task(self.init_tasks)
+        elif event.type == ft.WindowEventType.SHOW:
+            # restart tasks when window is shown
+            if self._latest_tasks_inited is None:
+                self.page.run_task(self.init_tasks)
+        elif event.type == ft.WindowEventType.CLOSE:
+            self.kill_app()
 
     async def on_keyboard_event(self, event: ft.KeyboardEvent):
         # check iddqd
@@ -436,8 +444,8 @@ class MainPage(ft.View):
                         expand=True,
                     ),
                     self._server_status,
-                    self._playtime,
-                    # self._version_column,
+                    ft.Container(width=120),
+                    # self._playtime,
                 ],
                 expand=True,
             ),
@@ -462,10 +470,10 @@ class MainPage(ft.View):
         while True:
             try:
                 await asyncio.to_thread(self._update_server_status)
-                await asyncio.sleep(5)
+                await asyncio.sleep(10)
             except Exception as e:
                 logging.info(f"Error updating server status: {e}")
-                await asyncio.sleep(5)
+                await asyncio.sleep(15)
 
     async def _playtime_update(self):
         while True:
