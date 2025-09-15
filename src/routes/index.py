@@ -36,6 +36,8 @@ class MainPage(ft.View):
         self.page = page
         self.controls = []
         self._keypressed_list = []
+        self._game_started = False
+        self._minecraft_process = None
         self._max_progress = 0
         self._download_callback = {  # lambda : self._progress_text.text = status,
             "setStatus": lambda status: self._set_progress_text(status),
@@ -526,6 +528,14 @@ class MainPage(ft.View):
             self.page.update()
 
     def _check_game(self, event: ft.TapEvent):
+        self._play_button_disabled()
+        self._check_game_button_disable()
+        self.page.update()
+
+        if self._check_minecraft_running():
+            logging.info("Minecraft is already running.")
+            return
+
         logging.info("Checking game...")
         # check if game is installed
         installed_versions = mcl.utils.get_installed_versions(
@@ -554,7 +564,6 @@ class MainPage(ft.View):
             self._launch_minecraft(modpack.modloader_full)
 
     def _launch_minecraft(self, version):
-        logging.info("Game is already downloaded.")
         options = {
             "username": account.user["user"]["players"][0]["name"],
             "uuid": account.user["user"]["players"][0]["uuid"],
@@ -576,6 +585,9 @@ class MainPage(ft.View):
         )
         # change working directory to .minecraft
         os.chdir(settings.minecraft_directory)
+        if self._check_minecraft_running():
+            logging.info("Minecraft is already running.")
+            return
         if SYSTEM_OS == "Windows":
             self._minecraft_process = subprocess.Popen(
                 minecraft_command,
@@ -602,7 +614,7 @@ class MainPage(ft.View):
         self._progress_bar.visible = True
         self._progress_text.visible = True
 
-        self._play_button_disable()
+        self._play_button_download()
         self._check_game_button_disable()
         self.page.update()
 
@@ -656,7 +668,7 @@ class MainPage(ft.View):
         self._progress_bar.visible = True
         self._progress_text.visible = True
 
-        self._play_button_disable()
+        self._play_button_download()
         self._check_game_button_disable()
         self.page.update()
 
@@ -684,7 +696,12 @@ class MainPage(ft.View):
         self._install_minecraft()
 
     def _stop_game(self, event: ft.TapEvent):
-        self._minecraft_process.kill()
+        if not self._check_minecraft_running():
+            return
+        try:
+            self._minecraft_process.kill()
+        except Exception as e:
+            logging.error(f"Failed to kill Minecraft process: {e}")
         # change working directory to launcher directory
         os.chdir(LAUNCHER_DIRECTORY)
         self._play_button_enable()
@@ -711,11 +728,17 @@ class MainPage(ft.View):
             return
         self._progress_bar.update()
 
-    def _play_button_disable(self):
+    def _play_button_download(self):
         self._play_button.disabled = True
         self._play_button.text = "Завантаження"
         self._play_button.bgcolor = ft.Colors.GREY_800
         self._play_button.icon = ft.Icons.DOWNLOADING
+
+    def _play_button_disabled(self):
+        self._play_button.disabled = True
+        self._play_button.text = "Запуск..."
+        self._play_button.bgcolor = ft.Colors.GREY_800
+        self._play_button.icon = ft.Icons.HOURGLASS_TOP
 
     def _play_button_enable(self):
         self._play_button.disabled = False
@@ -763,10 +786,10 @@ class MainPage(ft.View):
         self._check_game_button.on_click = self._cancel_download
 
     def _check_minecraft_running(self):
-        if self._minecraft_process is not None:
-            if self._minecraft_process.poll() is None:
-                return True
-        return False
+        return (
+            self._minecraft_process is not None
+            and self._minecraft_process.poll() is None
+        )
 
     # if minecraft is not running, enable play button, check in loop
     async def _check_minecraft(self):
