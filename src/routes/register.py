@@ -14,7 +14,9 @@ class RegisterPage(ft.View):
     def build_ui(self):
         title = ft.Text("Реєстрація", size=24, weight=ft.FontWeight.BOLD)
 
-        self.username = ft.TextField(label="Логін", width=300, max_length=16)
+        self.username = ft.TextField(
+            label="Логін", width=300, max_length=16, autofocus=True
+        )
         self.password = ft.TextField(
             label="Пароль",
             password=True,
@@ -37,7 +39,10 @@ class RegisterPage(ft.View):
             width=300,
         )
         back_button = ft.TextButton(
-            "Назад", icon=ft.Icons.ARROW_BACK, on_click=self.go_login, width=300
+            "Назад",
+            icon=ft.Icons.ARROW_BACK,
+            width=300,
+            on_click=lambda e: self.page.go("/login"),
         )
         rules_agreement_text = ft.Text(
             disabled=False,
@@ -51,15 +56,14 @@ class RegisterPage(ft.View):
                     url=RULES_URL,
                     on_enter=self.highlight_link,
                     on_exit=self.unhighlight_link,
-                )
+                ),
             ],
         )
         self.rules_agreement = ft.Checkbox(
             label=rules_agreement_text,
             value=False,
-            width=300,
         )
-        
+
         self.controls.append(
             ft.Row(
                 [
@@ -86,9 +90,10 @@ class RegisterPage(ft.View):
         if self.rules_agreement.value is False:
             snack_bar = ft.SnackBar(
                 ft.Text("Ви повинні погодитись з правилами!"),
-                bgcolor=ft.Colors.RED_400,
+                bgcolor=ft.Colors.ERROR,
                 open=True,
             )
+            self.rules_agreement.is_error = True
             e.control.page.overlay.append(snack_bar)
             self.page.update()
             return
@@ -97,23 +102,23 @@ class RegisterPage(ft.View):
         confirm_password = self.confirm_password.value.strip()
         if not all([username, password, confirm_password]):
             snack_bar = ft.SnackBar(
-                ft.Text("Заповніть всі поля!"), bgcolor=ft.Colors.RED_400, open=True
+                ft.Text("Заповніть всі поля!"), bgcolor=ft.Colors.ERROR, open=True
             )
         elif len(username) < 4:
             snack_bar = ft.SnackBar(
                 ft.Text("Логін повинен містити не менше 4 символів!"),
-                bgcolor=ft.Colors.RED_400,
+                bgcolor=ft.Colors.ERROR,
                 open=True,
             )
         elif len(password) < 8:
             snack_bar = ft.SnackBar(
                 ft.Text("Пароль повинен містити не менше 8 символів!"),
-                bgcolor=ft.Colors.RED_400,
+                bgcolor=ft.Colors.ERROR,
                 open=True,
             )
         elif password != confirm_password:
             snack_bar = ft.SnackBar(
-                ft.Text("Паролі не співпадають!"), bgcolor=ft.Colors.RED_400, open=True
+                ft.Text("Паролі не співпадають!"), bgcolor=ft.Colors.ERROR, open=True
             )
         else:
             resp = account.register(username, password)
@@ -126,13 +131,10 @@ class RegisterPage(ft.View):
                 self.page.go("/login")
             else:
                 snack_bar = ft.SnackBar(
-                    ft.Text(resp), bgcolor=ft.Colors.RED_400, open=True
+                    ft.Text(resp), bgcolor=ft.Colors.ERROR, open=True
                 )
         e.control.page.overlay.append(snack_bar)
         self.page.update()
-
-    def go_login(self, e: ft.ControlEvent):
-        self.page.go("/login")
 
     def highlight_link(self, e):
         e.control.style.color = ft.Colors.BLUE

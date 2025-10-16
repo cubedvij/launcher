@@ -37,7 +37,7 @@ class LoginPage(ft.View):
 
         register_button = ft.TextButton(
             "Реєстрація",
-            icon=ft.Icons.EDIT_OUTLINED,
+            icon=ft.Icons.PERSON_ADD_OUTLINED,
             width=300,
             on_click=self.register,
         )
@@ -58,6 +58,7 @@ class LoginPage(ft.View):
                     )
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 expand=True,
             )
         )

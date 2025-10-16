@@ -10,7 +10,7 @@ import minecraft_launcher_lib as mcl
 
 from minestat import MineStat, SlpProtocols
 
-from utils import Shimmer
+from utils import Shimmer, _open_link
 from auth import account
 from modpack import modpack
 from authlib import authlib
@@ -213,7 +213,7 @@ class MainPage(ft.View):
 
     def __open_monobank(self, event: ft.TapEvent):
         play(os.path.join(BASE_PATH, "assets", "mono.wav"), async_mode=True)
-        self._open_link("https://send.monobank.ua/jar/48bPzh2JmA")
+        _open_link("https://send.monobank.ua/jar/48bPzh2JmA")
 
     def build_ui(self):
         self._update_banner = ft.Banner(
@@ -286,22 +286,20 @@ class MainPage(ft.View):
                                     height=20,
                                     color=ft.Colors.ON_SURFACE_VARIANT,
                                 ),
-                                on_click=lambda e: self._open_link(
+                                on_click=lambda e: _open_link(
                                     "https://github.com/cubedvij"
                                 ),
                                 tooltip="GitHub",
                             ),
                             ft.IconButton(
                                 icon=ft.Icons.TELEGRAM,
-                                on_click=lambda e: self._open_link(
-                                    "https://t.me/cube_dvij"
-                                ),
+                                on_click=lambda e: _open_link("https://t.me/cube_dvij"),
                                 tooltip="Telegram",
                             ),
                             # discord
                             ft.IconButton(
                                 icon=ft.Icons.DISCORD,
-                                on_click=lambda e: self._open_link(
+                                on_click=lambda e: _open_link(
                                     "https://discord.gg/E9rZM58gqT"
                                 ),
                                 tooltip="Discord",
@@ -338,9 +336,7 @@ class MainPage(ft.View):
             icon=ft.Icons.FOLDER,
             bgcolor=ft.Colors.SECONDARY_CONTAINER,
             tooltip="Відкрити папку з грою",
-            on_click=lambda e: self._open_link(
-                f"file://{settings.minecraft_directory}"
-            ),
+            on_click=lambda e: _open_link(f"file://{settings.minecraft_directory}"),
         )
         self.floating_action_button = ft.Container(
             ft.Row(
@@ -354,7 +350,7 @@ class MainPage(ft.View):
             padding=ft.Padding(0, 0, 8, 8),
         )
         self.floating_action_button_location = (
-            ft.FloatingActionButtonLocation.CENTER_DOCKED
+            ft.FloatingActionButtonLocation.MINI_CENTER_DOCKED
         )
         self._progress_text = ft.Text(
             "",
@@ -449,7 +445,7 @@ class MainPage(ft.View):
                     ft.Container(width=120),
                     # self._playtime,
                 ],
-                expand=True,
+                expand=False,
             ),
         )
         self.pagelet = ft.Pagelet(

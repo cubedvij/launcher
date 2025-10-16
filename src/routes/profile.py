@@ -36,7 +36,11 @@ class ProfilePage(ft.View):
                 ft.TextButton("Ні", on_click=self.close_alert),
             ],
         )
-        self._snack_bar = ft.SnackBar(Shimmer(control=ft.Text(), auto_generate=True))
+        self._snack_bar = ft.SnackBar(
+            Shimmer(control=ft.Text(), auto_generate=True),
+            behavior=ft.SnackBarBehavior.FLOATING,
+            dismiss_direction=ft.DismissDirection.HORIZONTAL,
+        )
         self._appbar = ft.AppBar(
             leading=ft.IconButton(
                 icon=ft.Icons.ARROW_BACK,
@@ -54,8 +58,26 @@ class ProfilePage(ft.View):
             ],
             title=ft.Text("Профіль", size=20),
             leading_width=64,
-            center_title=False,      
+            center_title=False,
             bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+        )
+
+        self._edit_nickname_title = ft.TextField(
+                # account.user["user"]["players"][0]["name"],
+                "...",
+                hint_text="Ім'я користувача",
+                disabled=True,
+                # text_align=ft.TextAlign.CENTER,
+                text_vertical_align=ft.VerticalAlignment.START,
+                border=ft.InputBorder.UNDERLINE,
+                filled=True,
+                on_submit=self._save_nickname,
+        )
+
+        self._edit_nickname_icon = ft.IconButton(
+            icon=ft.Icons.EDIT,
+            tooltip="Редагувати",
+            on_click=self._edit_nickname,
         )
 
         self._list_tile = ft.ListTile(
@@ -66,28 +88,14 @@ class ProfilePage(ft.View):
                 fit=ft.ImageFit.CONTAIN,
                 filter_quality=ft.FilterQuality.NONE,
             ),
-            title=ft.TextField(
-                # account.user["user"]["players"][0]["name"],
-                "...",
-                hint_text="Ім'я користувача",
-                disabled=True,
-                # text_align=ft.TextAlign.CENTER,
-                text_vertical_align=ft.VerticalAlignment.START,
-                border=ft.InputBorder.UNDERLINE,
-                filled=True,
-                on_submit=self._save_nickname,
-            ),
+            title=self._edit_nickname_title,
             subtitle=ft.Text(
                 # account.user["user"]["players"][0]["uuid"],
                 "...",
                 size=10,
                 selectable=True,
             ),
-            trailing=ft.IconButton(
-                icon=ft.Icons.EDIT,
-                tooltip="Редагувати",
-                on_click=self._edit_nickname,
-            ),
+            trailing=self._edit_nickname_icon,
             title_alignment=ft.ListTileTitleAlignment.TITLE_HEIGHT,
             content_padding=ft.Padding(8, 2, 8, 2),
         )
@@ -227,7 +235,6 @@ class ProfilePage(ft.View):
 
         self._skin_card = ft.Card(
             margin=ft.Margin(0, 4, 0, 0),
-            
             content=ft.Row(
                 width=500,
                 controls=[
@@ -243,7 +250,7 @@ class ProfilePage(ft.View):
                         expand=True,
                     ),
                 ],
-            )
+            ),
         )
         self.pagelet = ft.Pagelet(
             expand=True,
@@ -264,24 +271,24 @@ class ProfilePage(ft.View):
         self.page.update()
 
     def _edit_nickname(self, e: ft.ControlEvent):
-        e.control.parent.title.disabled = False
-        e.control.parent.trailing.icon = ft.Icons.SAVE
-        e.control.parent.trailing.tooltip = "Зберегти"
-        e.control.parent.trailing.on_click = self._save_nickname
-        e.control.update()
-        e.control.parent.title.focus()
+        self._edit_nickname_title.disabled = False
+        self._edit_nickname_icon.icon = ft.Icons.SAVE
+        self._edit_nickname_icon.tooltip = "Зберегти"
+        self._edit_nickname_icon.on_click = self._save_nickname
+        self._edit_nickname_icon.update()
+        self._edit_nickname_title.focus()
 
     def _save_nickname(self, e: ft.ControlEvent):
-        if account.is_valid_nickname(e.control.parent.title.value):
-            resp = account.update_player({"name": e.control.parent.title.value})
+        if account.is_valid_nickname(self._edit_nickname_title.value):
+            resp = account.update_player({"name": self._edit_nickname_title.value})
             resp_json = resp.json()
             if resp.status_code == 200:
-                if resp_json["name"] == e.control.parent.title.value:
+                if resp_json["name"] == self._edit_nickname_title.value:
                     account.get_user()
-                    e.control.parent.title.disabled = True
-                    e.control.parent.trailing.icon = ft.Icons.EDIT
-                    e.control.parent.trailing.tooltip = "Редагувати"
-                    e.control.parent.trailing.on_click = self._edit_nickname
+                    self._edit_nickname_title.disabled = True
+                    self._edit_nickname_icon.icon = ft.Icons.EDIT
+                    self._edit_nickname_icon.tooltip = "Редагувати"
+                    self._edit_nickname_icon.on_click = self._edit_nickname
                     self._snack_bar.content = ft.Text(
                         "Ім'я користувача успішно змінено!"
                     )
@@ -294,7 +301,6 @@ class ProfilePage(ft.View):
             self._snack_bar.content = ft.Text("Недійсне ім'я користувача!")
             self._snack_bar.bgcolor = ft.Colors.RED_400
         self.page.open(self._snack_bar)
-        self.page.update()
         return
 
     def update_skin(self):
@@ -324,7 +330,6 @@ class ProfilePage(ft.View):
                 self._snack_bar.content = ft.Text(resp_json["message"])
                 self._snack_bar.bgcolor = ft.Colors.RED_400
             self.page.open(self._snack_bar)
-            self.page.update()
         return
 
     async def on_upload_cape(self, e: ft.FilePickerResultEvent):
@@ -347,7 +352,6 @@ class ProfilePage(ft.View):
                 self._snack_bar.content = ft.Text(resp_json["message"])
                 self._snack_bar.bgcolor = ft.Colors.RED_400
             self.page.open(self._snack_bar)
-            self.page.update()
         return
 
     async def on_delete_skin(self, e):
@@ -364,7 +368,6 @@ class ProfilePage(ft.View):
             self._snack_bar.content = ft.Text(resp_json["message"])
             self._snack_bar.bgcolor = ft.Colors.RED_400
         self.page.open(self._snack_bar)
-        self.page.update()
 
     async def on_delete_cape(self, e):
         resp = account.update_player({"deleteCape": True})
@@ -380,9 +383,8 @@ class ProfilePage(ft.View):
             self._snack_bar.content = ft.Text(resp_json["message"])
             self._snack_bar.bgcolor = ft.Colors.RED_400
         self.page.open(self._snack_bar)
-        self.page.update()
 
-    def on_skin_type_change(self, e):
+    def on_skin_type_change(self, e: ft.ControlEvent):
         resp = account.update_player({"skinModel": e.data})
         resp_json = resp.json()
         if resp.status_code == 200:
@@ -396,7 +398,6 @@ class ProfilePage(ft.View):
             self._snack_bar.content = ft.Text(resp_json["message"])
             self._snack_bar.bgcolor = ft.Colors.RED_400
         self.page.open(self._snack_bar)
-        self.page.update()
 
     def on_change_password(self, e):
         new_password = self._new_password.value.strip()
@@ -426,11 +427,10 @@ class ProfilePage(ft.View):
 
     def go_index(self, e):
         self._list_tile.title.disabled = True
-        self._list_tile.trailing.icon = ft.Icons.EDIT
-        self._list_tile.trailing.on_click = self._edit_nickname
+        self._edit_nickname_icon.icon = ft.Icons.EDIT
+        self._edit_nickname_icon.on_click = self._edit_nickname
         self._new_password.value = ""
         self._confirm_password.value = ""
-        self.page.update()
         self.page.go("/")
 
     def logout(self):
@@ -438,9 +438,9 @@ class ProfilePage(ft.View):
         self.page.go("/login")
 
     def open_alert(self, e):
-        e.control.page.overlay.append(self._alert_dialog)
+        self.page.overlay.append(self._alert_dialog)
         self._alert_dialog.open = True
-        e.control.page.update()
+        self.page.update()
 
     def close_alert(self, e):
         self.page.close(self._alert_dialog)

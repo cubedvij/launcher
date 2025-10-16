@@ -1,3 +1,6 @@
+import os
+import subprocess
+
 import asyncio
 import logging
 
@@ -349,3 +352,10 @@ def setup_theme_settings(page: ft.Page, color_scheme: str, radius: int, shape_ty
             shape=shape,
         ),
     )
+
+
+def _open_link(link: str):
+    if os.name == "nt":
+        subprocess.Popen(f'explorer /select,"{link}"')
+    else:
+        subprocess.Popen(["xdg-open", link])

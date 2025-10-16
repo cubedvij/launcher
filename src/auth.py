@@ -5,8 +5,13 @@ import json
 import httpx
 import hashlib
 
-from config import AUTH_URL, ACCOUNT_FILE, SKIN_RENDER_URL, USER_FILE, SKINS_CACHE_FOLDER
-
+from config import (
+    AUTH_URL,
+    ACCOUNT_FILE,
+    SKIN_RENDER_URL,
+    USER_FILE,
+    SKINS_CACHE_FOLDER,
+)
 
 class Auth:
     def __init__(self):
@@ -14,8 +19,6 @@ class Auth:
         self.skin_url = SKIN_RENDER_URL
         self.account = {}
         self.user = {}
-        self.update_skin = False
-        self.skin_hash = None
         self.yggdrasil_session = httpx.Client()
         self.api_session = httpx.Client()
         self.load_account()
@@ -256,5 +259,6 @@ class Auth:
             if resp.status_code != 200:
                 return resp
             return resp
+
 
 account = Auth()
