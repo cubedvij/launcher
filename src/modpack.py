@@ -2,6 +2,8 @@ import hashlib
 import json
 import logging
 import os
+import shutil
+import subprocess
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -9,7 +11,17 @@ from typing import Callable, Dict, Optional, Tuple
 
 import httpx
 
-from config import APPDATA_FOLDER, MODPACK_REPO_URL, MODPACK_INDEX_URL
+from config import (
+    APPDATA_FOLDER,
+    MODPACK_REPO_URL,
+    MODPACK_INDEX_URL,
+    MODPACK_BRANCH,
+    SYSTEM_OS,
+    LAUNCHER_NAME,
+    LAUNCHER_VERSION,
+    AUTHLIB_INJECTOR_URL,
+)
+from minecraft_launcher_lib.command import get_minecraft_command
 from settings import settings
 from minecraft_launcher_lib._helper import (
     check_path_inside_minecraft_directory,
@@ -19,6 +31,7 @@ from minecraft_launcher_lib._helper import (
 from minecraft_launcher_lib.exceptions import VersionNotFound
 from minecraft_launcher_lib.fabric import install_fabric
 from minecraft_launcher_lib.forge import install_forge_version
+from minecraft_launcher_lib.install import install_minecraft_version
 from minecraft_launcher_lib.mrpack import (
     MrpackIndex,
     MrpackInstallOptions,
@@ -26,18 +39,20 @@ from minecraft_launcher_lib.mrpack import (
 )
 from minecraft_launcher_lib.quilt import install_quilt
 from minecraft_launcher_lib.types import CallbackDict
+from minecraft_launcher_lib.utils import get_installed_versions
 
 
 class Modpack:
     def __init__(self):
         self._index_url = MODPACK_INDEX_URL
-        self._zip_url = f"{MODPACK_REPO_URL}/archive/refs/heads/main.zip"
+        self._zip_url = f"{MODPACK_REPO_URL}/archive/refs/heads/{MODPACK_BRANCH}.zip"
         self._modpack_index_file = None
-        self.name = "cubedvij"
+        self.name = None
         self.installed_version = None
         self.remote_version = None
         self._modpack_file = None
         self._modpack_path = None
+        self._minecraft_process = None
         self._setup_paths()
         self._load_modpack_info()
 
@@ -68,13 +83,14 @@ class Modpack:
     def _load_modpack_info(self) -> None:
         """Load and parse modpack information."""
         self._version = self._get_modpack_version()
+        self.name = self._version.get("name", "unknown")
         self.installed_version = self._version.get("installed_version", "unknown")
         self.minecraft_version = self._version.get("minecraft_version", "unknown")
         self.modloader = self._version.get("modloader", "unknown")
         self.modloader_version = self._version.get("modloader_version", "unknown")
-        self.modloader_full = (
-            f"{self.minecraft_version}-{self.modloader}-{self.modloader_version}"
-        )
+        self.modloader_full = self.minecraft_version
+        if self.modloader != "unknown" and self.modloader_version != "unknown":
+            self.modloader_full += f"-{self.modloader}-{self.modloader_version}"
         self._etag = self._version.get("etag")
         self.modpack_index = None
 
@@ -188,11 +204,6 @@ class Modpack:
         minecraft_directory = os.path.abspath(minecraft_directory)
         path = os.path.abspath(path)
 
-        if modpack_directory is None:
-            modpack_directory = minecraft_directory
-        else:
-            modpack_directory = os.path.abspath(modpack_directory)
-
         if callback is None:
             callback = {}
 
@@ -200,8 +211,18 @@ class Modpack:
             mrpack_install_options = {}
 
         with zipfile.ZipFile(path, "r") as zf:
-            with zf.open("modpack-main/modrinth.index.json", "r") as f:
+            with zf.open(f"modpack-{MODPACK_BRANCH}/modrinth.index.json", "r") as f:
                 index: MrpackIndex = json.load(f)
+
+            self.name = index["name"]
+            minecraft_directory = os.path.join(minecraft_directory, self.name)
+            if not os.path.exists(minecraft_directory):
+                os.makedirs(minecraft_directory)
+
+            if modpack_directory is None:
+                modpack_directory = minecraft_directory
+            else:
+                modpack_directory = os.path.abspath(modpack_directory)
 
             # Download the files
             file_list = _filter_mrpack_files(index["files"], mrpack_install_options)
@@ -239,6 +260,7 @@ class Modpack:
                 return
 
             self.setup_mod_loaders(minecraft_directory, callback, index)
+            return
 
     def setup_mod_loaders(self, minecraft_directory, callback, index):
         if "forge" in index["dependencies"]:
@@ -281,6 +303,16 @@ class Modpack:
                 index["dependencies"]["minecraft"],
                 minecraft_directory,
                 loader_version=index["dependencies"]["quilt-loader"],
+                callback=callback,
+            )
+
+        else:
+            callback.get("setStatus", empty)(
+                f"Installing Minecraft {index['dependencies']['minecraft']}"
+            )
+            install_minecraft_version(
+                index["dependencies"]["minecraft"],
+                minecraft_directory,
                 callback=callback,
             )
 
@@ -369,16 +401,20 @@ class Modpack:
         for zip_name in zf.namelist():
             # Check if the entry is in the overrides and if it is a file
             if (
-                not zip_name.startswith("modpack-main/overrides/")
-                and not zip_name.startswith("modpack-main/client-overrides/")
+                not zip_name.startswith(f"modpack-{MODPACK_BRANCH}/overrides/")
+                and not zip_name.startswith(
+                    f"modpack-{MODPACK_BRANCH}/client-overrides/"
+                )
             ) or zf.getinfo(zip_name).file_size == 0:
                 continue
 
             # Remove the overrides at the start of the Name
-            if zip_name.startswith("modpack-main/client-overrides/"):
-                file_name = zip_name[len("modpack-main/client-overrides/") :]
+            if zip_name.startswith(f"modpack-{MODPACK_BRANCH}/client-overrides/"):
+                file_name = zip_name[
+                    len(f"modpack-{MODPACK_BRANCH}/client-overrides/") :
+                ]
             else:
-                file_name = zip_name[len("modpack-main/overrides/") :]
+                file_name = zip_name[len(f"modpack-{MODPACK_BRANCH}/overrides/") :]
 
             # Constructs the full Path
             full_path = os.path.abspath(os.path.join(modpack_directory, file_name))
@@ -423,8 +459,227 @@ class Modpack:
             logging.info(f"Modpack {self.name} installed successfully.")
             return True
         except Exception as e:
-            logging.info(f"Error installing modpack: {e}")
+            logging.error(f"Error installing modpack: {e}", exc_info=True)
             return False
+
+    def play(self, username: str, uuid: str, token: str) -> None:
+        logging.info("Checking game...")
+        # check if game is installed
+        installed_versions = get_installed_versions(settings.minecraft_directory)
+        installed_versions_list = []
+        for version in installed_versions:
+            installed_versions_list.append(version["id"])
+        logging.info(f"Installed versions list: {installed_versions_list}")
+
+        # check if game is installed
+        if not all(
+            (
+                modpack.minecraft_version in installed_versions_list,
+                modpack.modloader_full in installed_versions_list,
+            )
+        ):
+            self._install_minecraft()
+        # check if modpack version is latest
+        # elif not modpack.is_up_to_date():
+        #    self._update_modpack(event)
+        # check if modpack installed correctly
+        # elif not modpack.verify_installation():
+        #    self._update_modpack(event)
+        else:
+            self._launch_minecraft(modpack.modloader_full, username, uuid, token)
+
+    def _launch_minecraft(
+        self, version: str, username: str, uuid: str, token: str
+    ) -> None:
+        options = {
+            "username": username,
+            "uuid": uuid,
+            "token": token,
+            "launcherName": LAUNCHER_NAME,
+            "launcherVersion": LAUNCHER_VERSION,
+            "customResolution": True,
+            "resolutionWidth": str(settings.window_width),
+            "resolutionHeight": str(settings.window_height),
+        }
+        options["jvmArguments"] = [
+            f"-Xmx{settings.max_use_ram}M",
+            f"-Xms{settings.min_use_ram}M",
+        ]
+        if self.minecraft_version == "b1.7.3":
+            modded_jar = self.install_jarmods()
+            options["jvmArguments"].append(
+                f"-javaagent:{settings.minecraft_directory}/authlib-injector.jar={AUTHLIB_INJECTOR_URL}"
+            )
+            options["jvmArguments"].append(
+                "-javaagent:agent/ears-vanilla-b1.7.3-1.4.7.jar"
+            )
+            options["jvmArguments"].append("-javaagent:legacyfix-2.0.jar")
+            # options["jvmArguments"].append(*settings.java_args)
+            options["jvmArguments"].append("-Dlf.profile.disable")
+            options["jvmArguments"].append("-Dlf.keep-resources")
+
+            minecraft_command = get_minecraft_command(
+                version,
+                os.path.join(settings.minecraft_directory, self.name),
+                options,
+            )
+            # Rebuild the launch command manually for Beta 1.7.3
+            natives_dir = os.path.join(
+                settings.minecraft_directory, self.name, "versions", version, "natives"
+            )
+
+            classpath = [
+                # "/home/hampta/.local/share/cubedvij/.minecraft/mangopack/libraries/org/lwjgl/lwjgl/lwjgl/2.9.0/lwjgl-2.9.0.jar",
+                # "/home/hampta/.local/share/cubedvij/.minecraft/mangopack/libraries/org/lwjgl/lwjgl/lwjgl_util/2.9.0/lwjgl_util-2.9.0.jar",
+                # "/home/hampta/.local/share/cubedvij/.minecraft/mangopack/libraries/org/lwjgl/lwjgl/lwjgl-platform/2.9.0/org/lwjgl/lwjgl/lwjgl-platform/2.9.0/lwjgl-platform-2.9.0-natives-linux.jar",
+                modded_jar,
+                "/home/hampta/.local/share/cubedvij/.minecraft/mangopack/agent/OnlineModeFix.jar",
+            ]
+            classpath_str = ":".join(classpath)
+
+            # minecraft_command = [
+            #     "/home/hampta/.local/share/cubedvij/.minecraft/mangopack/runtime/jre-legacy/bin/java",
+            #     f"-Xmx{settings.max_use_ram}M",
+            #     f"-Xms{settings.min_use_ram}M",
+            #     "-javaagent:agent/ears-vanilla-b1.7.3-1.4.7.jar",
+            #     "-javaagent:legacyfix-2.0.jar",
+            #     f"-javaagent:{settings.minecraft_directory}/authlib-injector.jar={AUTHLIB_INJECTOR_URL}",
+            #     "-Dminecraft.api.session.host=https://auth.cubedvij.pp.ua/session",
+            #     "-Djava.protocol.handler.pkgs=gg.codie.mineonline.protocol",
+            #     "-Dlf.profile.disable",
+            #     "-Dlf.keep-resources",
+            #     # "-Dfml.ignoreInvalidMinecraftCertificates=true",
+            #     f"-Djava.library.path={natives_dir}",
+            #     f"-Dorg.lwjgl.librarypath={natives_dir}",
+            #     "-cp",
+            #     classpath_str,
+            #     "net.minecraft.client.Minecraft",
+            #     username,
+            #     token,
+            # ]
+
+            for arg in minecraft_command:
+                if arg.startswith("-cp"):
+                    classpaths = minecraft_command[minecraft_command.index(arg) + 1].split(":")
+                    classpaths.pop(-1)  # remove original minecraft jar
+                    classpaths.append(modded_jar)
+                    classpath_str = ":".join(classpaths)
+                    minecraft_command[minecraft_command.index(arg) + 1] = classpath_str
+                if arg.startswith("net.minecraft.launchwrapper.Launch"):
+                    minecraft_command[minecraft_command.index(arg)] = "net.minecraft.client.Minecraft"
+
+        else:
+            options["jvmArguments"].append(
+                f"-javaagent:{settings.minecraft_directory}/authlib-injector.jar={AUTHLIB_INJECTOR_URL}"
+            )
+            options["jvmArguments"].append(*settings.java_args)
+            minecraft_command = get_minecraft_command(
+                version, os.path.join(settings.minecraft_directory, self.name), options
+            )
+        # save command to a file for debugging
+        with open("last_launch_command.txt", "w") as f:
+            f.write(" ".join(minecraft_command))
+        # change working directory to .minecraft
+        os.chdir(os.path.join(settings.minecraft_directory, self.name))
+        if self._check_minecraft_running():
+            logging.info("Minecraft is already running.")
+            return
+        print(" ".join(minecraft_command))
+        logging.info("Launching Minecraft...")
+
+        if SYSTEM_OS == "Windows":
+            self._minecraft_process = subprocess.Popen(
+                minecraft_command,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+                start_new_session=True,
+            )
+        elif SYSTEM_OS == "Linux":
+            self._minecraft_process = subprocess.Popen(
+                minecraft_command,
+                start_new_session=True,
+            )
+        # self.page.run_task(self._check_minecraft)
+        # self._play_button_stop()
+        # self._check_game_button_disable()
+        # if settings.minimize_launcher:
+        #     self.page.window.minimized = True
+        # if settings.close_launcher:
+        #     self.kill_app()
+        # self.page.update()
+
+    def install_jarmods(self) -> None:
+        mmc_pack_path = os.path.join(
+            settings.minecraft_directory, self.name, "mmc-pack.json"
+        )
+        mmc_pack = {}
+        if os.path.exists(mmc_pack_path):
+            with open(mmc_pack_path, "r") as f:
+                mmc_pack = json.load(f)
+        jarmods_path = os.path.join(settings.minecraft_directory, self.name, "jarmods")
+        jarmods_list = []
+
+        logging.info(f"Found {len(jarmods_list)} jarmods, installing...")
+        jar_path = os.path.join(
+            settings.minecraft_directory,
+            self.name,
+            "versions",
+            self.modloader_full,
+            f"{self.modloader_full}.jar",
+        )
+        output_path = os.path.join(
+            settings.minecraft_directory, self.name, "bin", "minecraft.jar"
+        )
+        if not os.path.exists(jar_path):
+            raise FileNotFoundError(f"Jar file not found: {jar_path}")
+        if not os.path.exists(jarmods_path):
+            os.makedirs(jarmods_path)
+        if not os.path.exists(os.path.dirname(output_path)):
+            os.makedirs(os.path.dirname(output_path))
+        # Temporary folder for modification
+        temp_dir = "temp_jar"
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        os.makedirs(temp_dir, exist_ok=True)
+
+        # Unpack original jar
+        with zipfile.ZipFile(jar_path, "r") as jar:
+            jar.extractall(temp_dir)
+
+        # Remove META-INF (prevents black screen)
+        meta_inf = os.path.join(temp_dir, "META-INF")
+        if os.path.exists(meta_inf):
+            shutil.rmtree(meta_inf)
+
+        mmc_components = mmc_pack.get("components", {}) if mmc_pack else {}
+        for component in mmc_components:
+            filename = component.get("uid", "").split("org.multimc.jarmod.")[-1]
+            if component.get("uid", "").startswith("org.multimc.jarmod."):
+                mod_path = os.path.join(jarmods_path, f"{filename}.jar")
+                if os.path.exists(mod_path):
+                    jarmods_list.append(mod_path)
+
+        logging.info(f"Total jarmods to install: {len(jarmods_list)}")
+        # Copy jarmods into the unpacked jar
+        for jarmod in jarmods_list:
+            with zipfile.ZipFile(jarmod, "r") as jar:
+                jar.extractall(temp_dir)
+
+        # Repack jar
+        with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as newjar:
+            for root, _, files in os.walk(temp_dir):
+                for f in files:
+                    path = os.path.join(root, f)
+                    arcname = os.path.relpath(path, temp_dir)
+                    newjar.write(path, arcname)
+
+        shutil.rmtree(temp_dir)
+        return output_path
+
+    def _check_minecraft_running(self):
+        return (
+            self._minecraft_process is not None
+            and self._minecraft_process.poll() is None
+        )
 
     def _clear_modpack_file(self) -> None:
         """Clear the modpack file if it exists."""
@@ -443,9 +698,10 @@ class Modpack:
         )
         self.modloader, self.modloader_version = self._get_modloader_info()
 
-        self.modloader_full = (
-            f"{self.minecraft_version}-{self.modloader}-{self.modloader_version}"
-        )
+        self.modloader_full = self.minecraft_version
+
+        if self.modloader != "unknown":
+            self.modloader_full += f"-{self.modloader}-{self.modloader_version}"
 
         if not self._modpack_version_file.parent.exists():
             self._modpack_version_file.parent.mkdir(parents=True)
@@ -453,6 +709,7 @@ class Modpack:
         with open(self._modpack_version_file, "w") as f:
             json.dump(
                 {
+                    "name": self.name,
                     "installed_version": self.installed_version,
                     "minecraft_version": self.minecraft_version,
                     "modloader": self.modloader,
@@ -527,7 +784,9 @@ class Modpack:
     def verify_installation(self) -> bool:
         """Verify that all modpack files are correctly installed."""
         for file in self.modpack_index.get("files", []):
-            file_path = os.path.join(settings.minecraft_directory, file["path"])
+            file_path = os.path.join(
+                settings.minecraft_directory, self.name, file["path"]
+            )
             # Check file existence
             if (
                 "env" in file and file["env"].get("client") == "required"

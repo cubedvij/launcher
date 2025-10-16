@@ -65,11 +65,17 @@ def get_installed_versions(minecraft_directory: str | os.PathLike) -> list[Minec
     """
     Returns all installed versions.
     """
-    versions_path = os.path.join(minecraft_directory, "versions")
-    try:
-        dir_list = os.listdir(versions_path)
-    except FileNotFoundError:
-        return []
+    modpacks = os.listdir(minecraft_directory)
+    modpacks = [d for d in modpacks if os.path.isdir(os.path.join(minecraft_directory, d))]
+
+    dir_list = []
+
+    for modpack in modpacks:
+        versions_path = os.path.join(minecraft_directory, modpack, "versions")
+        try:
+            dir_list.extend(os.listdir(versions_path))
+        except FileNotFoundError:
+            return []
 
     version_list: list[MinecraftVersionInfo] = []
     for version_id in dir_list:

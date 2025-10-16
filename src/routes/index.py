@@ -528,36 +528,15 @@ class MainPage(ft.View):
         self._check_game_button_disable()
         self.page.update()
 
-        if self._check_minecraft_running():
+        if modpack._check_minecraft_running():
             logging.info("Minecraft is already running.")
             return
 
-        logging.info("Checking game...")
-        # check if game is installed
-        installed_versions = mcl.utils.get_installed_versions(
-            settings.minecraft_directory,
+        modpack.play(
+            account.user["user"]["players"][0]["name"],
+            account.user["user"]["players"][0]["uuid"],
+            account.account["access_token"],
         )
-        installed_versions_list = []
-        for version in installed_versions:
-            installed_versions_list.append(version["id"])
-        logging.info(f"Installed versions list: {installed_versions_list}")
-
-        # check if game is installed
-        if not all(
-            (
-                modpack.minecraft_version in installed_versions_list,
-                modpack.modloader_full in installed_versions_list,
-            )
-        ):
-            self._install_minecraft()
-        # check if modpack version is latest
-        elif not modpack.is_up_to_date():
-            self._update_modpack(event)
-        # check if modpack installed correctly
-        elif not modpack.verify_installation():
-            self._update_modpack(event)
-        else:
-            self._launch_minecraft(modpack.modloader_full)
 
     def _launch_minecraft(self, version):
         options = {
@@ -781,16 +760,10 @@ class MainPage(ft.View):
         self._check_game_button.icon = ft.Icons.STOP
         self._check_game_button.on_click = self._cancel_download
 
-    def _check_minecraft_running(self):
-        return (
-            self._minecraft_process is not None
-            and self._minecraft_process.poll() is None
-        )
-
     # if minecraft is not running, enable play button, check in loop
     async def _check_minecraft(self):
         while True:
-            if not self._check_minecraft_running():
+            if not modpack._check_minecraft_running():
                 self._play_button_enable()
                 self._check_game_button_enable()
                 self.page.window.to_front()
@@ -804,9 +777,3 @@ class MainPage(ft.View):
         if self.page is None or self._progress_bar is None:
             return
         self._progress_bar.update()
-
-    def _open_link(self, link: str):
-        if os.name == "nt":
-            subprocess.Popen(f'explorer /select,"{link}"')
-        else:
-            subprocess.Popen(["xdg-open", link])

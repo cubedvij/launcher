@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import platform
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Optional
@@ -23,7 +24,9 @@ from .types import CallbackDict
 
 __all__ = ["install_minecraft_version"]
 
-
+_platform = platform.system().lower()
+if _platform == "darwin":
+    _platform = "osx"
 
 
 def _download_and_extract_native(
@@ -75,8 +78,13 @@ def install_libraries(
     def download_library(lib_info: ClientJsonLibrary) -> None:
         # Download natives if present
         if "classifiers" in lib_info.get("downloads", {}):
-            jar_filename_native = lib_info["downloads"]["artifact"]["path"]
-            libraries_path = base_path / "libraries" / lib_info["path"]
+            jar_filename_native = lib_info["downloads"].get("artifact")
+            if jar_filename_native:
+                jar_filename_native = jar_filename_native["path"]
+            else:
+                jar_filename_native = lib_info["downloads"]["classifiers"][f"natives-{_platform}"]["path"]
+            libraries_path = base_path / "libraries" / Path(jar_filename_native).parent
+            libraries_path.mkdir(parents=True, exist_ok=True)
             check_path_inside_minecraft_directory(str(base_path), str(libraries_path))
             _download_and_extract_native(
                 lib_info, libraries_path, jar_filename_native, version_id, base_path
