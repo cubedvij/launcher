@@ -1,43 +1,83 @@
+import time
 import hashlib
 import json
 import logging
 import os
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Optional
 
 import httpx
+import minecraft_launcher_lib as mcl
 
-from config import APPDATA_FOLDER, MODPACK_REPO_URL, MODPACK_INDEX_URL
-from settings import settings
+from config import (
+    APPDATA_FOLDER,
+    AUTHLIB_INJECTOR_URL,
+    LAUNCHER_NAME,
+    LAUNCHER_VERSION,
+    MODPACK_REPO,
+    MODPACK_REPO_URL,
+)
 from minecraft_launcher_lib._helper import (
     check_path_inside_minecraft_directory,
     download_file,
     empty,
 )
-from minecraft_launcher_lib.exceptions import VersionNotFound
-from minecraft_launcher_lib.fabric import install_fabric
-from minecraft_launcher_lib.forge import install_forge_version
-from minecraft_launcher_lib.mrpack import (
-    MrpackIndex,
-    MrpackInstallOptions,
-    _filter_mrpack_files,
-)
-from minecraft_launcher_lib.quilt import install_quilt
-from minecraft_launcher_lib.types import CallbackDict
+from settings import settings
+
+
+@dataclass
+class ModpackInfo:
+    name: str
+    installed_version: str
+    remote_version: str
+    minecraft_version: str
+    modloader: str
+    modloader_version: str
+    etag: Optional[str] = None
+
+    @property
+    def modloader_full(self) -> str:
+        return f"{self.minecraft_version}-{self.modloader}-{self.modloader_version}".lower()
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> "ModpackInfo":
+        return cls(
+            name=data.get("name", "Unknown"),
+            installed_version=data.get("installed_version", "0.0.0"),
+            remote_version=data.get("remote_version", "0.0.0"),
+            minecraft_version=data.get("minecraft_version", "unknown"),
+            modloader=data.get("modloader", "unknown"),
+            modloader_version=data.get("modloader_version", "unknown"),
+            etag=data.get("etag"),
+        )
+
+
+@dataclass
+class ModpacksInfo:
+    modpacks: Dict[str, ModpackInfo]
+    selected: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> "ModpacksInfo":
+        modpacks = {
+            name: ModpackInfo.from_dict(info)
+            for name, info in data.get("modpacks", {}).items()
+        }
+        selected = data.get("selected")
+        return cls(modpacks=modpacks, selected=selected)
 
 
 class Modpack:
     def __init__(self):
-        self._index_url = MODPACK_INDEX_URL
-        self._zip_url = f"{MODPACK_REPO_URL}/archive/refs/heads/main.zip"
         self._modpack_index_file = None
-        self.name = "cubedvij"
-        self.installed_version = None
-        self.remote_version = None
-        self._modpack_file = None
-        self._modpack_path = None
+        self._installed_modpacks: Dict[str, ModpackInfo] = []
+        self._remote_modpacks: list[str] = []
+        self._selected: Optional[str] = None
+        self._mrpack_path = None
+        self.fetch_modpacks()
         self._setup_paths()
         self._load_modpack_info()
 
@@ -45,38 +85,130 @@ class Modpack:
         # self._load_modpack_info()
         # self._ensure_modpack_exists()
         # run on thread - self._ensure_modpack_exists()
-        # executor = ThreadPoolExecutor(max_workers=1)
-        # executor.submit(self._on_load)
+
+    @property
+    def _index_url(self) -> str:
+        return f"https://raw.githubusercontent.com/{MODPACK_REPO}/refs/heads/{self._selected}/modrinth.index.json"
+
+    @property
+    def _zip_url(self) -> str:
+        return f"{MODPACK_REPO_URL}/archive/refs/heads/{self._selected}.zip"
+
+    def fetch_modpacks(self) -> None:
+        # Check cache first
+        cache_file = APPDATA_FOLDER / "modpacks_cache.json"
+        cache_duration = 300  # 5 minutes in seconds
+
+        if cache_file.exists():
+            try:
+                with open(cache_file, "r") as f:
+                    cache_data = json.load(f)
+
+                # Check if cache is still valid (5 minutes)
+                if time.time() - cache_data.get("timestamp", 0) < cache_duration:
+                    self._remote_modpacks = cache_data.get("modpacks", [])
+                    return
+            except (json.JSONDecodeError, KeyError):
+                pass
+
+        # Fetch from API if cache is invalid or doesn't exist
+        try:
+            resp = httpx.get(
+                f"https://api.github.com/repos/{MODPACK_REPO}/branches",
+                follow_redirects=True,
+                timeout=30,
+            )
+            if resp.status_code == 200:
+                branches = resp.json()
+                modpacks = []
+                for branch in branches:
+                    name = branch.get("name")
+                    if not name:
+                        continue
+                    modpacks.append(name)
+
+                self._remote_modpacks = modpacks
+
+                # Save to cache
+                cache_data = {"modpacks": modpacks, "timestamp": time.time()}
+                with open(cache_file, "w") as f:
+                    json.dump(cache_data, f)
+            else:
+                logging.info(f"Error fetching modpacks: {resp.status_code}")
+                # apply installed modpsacks as remote
+                self._remote_modpacks = list(self._installed_modpacks.keys())
+        except Exception as e:
+            logging.info(f"Error fetching modpacks: {e}")
+            self._remote_modpacks = []
 
     def _on_load(self) -> None:
-        # self._ensure_modpack_exists()
         self._load_modpack_info()
+
+    def migrate_modpacks_info(self) -> None:
+        """Migrate existing modpack info to the new format."""
+        if self._modpacks_info_file.exists():
+            return
+        existing_version_info = self._get_modpack_version()
+        if not existing_version_info:
+            return
+
+        modpack_info = ModpackInfo(
+            name="main",
+            installed_version=existing_version_info.get("installed_version", "0.0.0"),
+            remote_version=existing_version_info.get("installed_version", "0.0.0"),
+            minecraft_version=existing_version_info.get("minecraft_version", "unknown"),
+            modloader=existing_version_info.get("modloader", "unknown"),
+            modloader_version=existing_version_info.get("modloader_version", "unknown"),
+            etag=existing_version_info.get("etag"),
+        )
+
+        data = {
+            "modpacks": {
+                "main": {
+                    "name": modpack_info.name,
+                    "installed_version": modpack_info.installed_version,
+                    "remote_version": modpack_info.remote_version,
+                    "minecraft_version": modpack_info.minecraft_version,
+                    "modloader": modpack_info.modloader,
+                    "modloader_version": modpack_info.modloader_version,
+                    "etag": modpack_info.etag,
+                }
+            },
+            "selected": "main",
+        }
+
+        with open(self._modpacks_info_file, "w") as f:
+            json.dump(data, f)
+
+        logging.info("Migrated existing modpack info to new format.")
 
     def _setup_paths(self) -> None:
         """Initialize all required paths."""
-        self._modpack_path = APPDATA_FOLDER / "mrpack"
-        self._modpack_path.mkdir(parents=True, exist_ok=True)
-        self._modpack_index_file = self._modpack_path / "modrinth.index.json"
-        self._modpack_file = self._modpack_path / f"{self.name}.mrpack"
-        self._modpack_version_file = APPDATA_FOLDER / ".version.json"
+        self._mrpack_path = APPDATA_FOLDER / "mrpack"
+        self._mrpack_path.mkdir(parents=True, exist_ok=True)
+        self._modpack_index_file = self._mrpack_path / "modrinth.index.json"
+        # self._modpack_file = self._modpack_path / f"{self.name}.mrpack"
+        self._modpack_version_file = APPDATA_FOLDER / ".version.json"  # OBSOLETE
+        self._modpacks_info_file = APPDATA_FOLDER / "modpacks.json"
+        if not self._modpacks_info_file.exists():
+            self.migrate_modpacks_info()
 
     def _ensure_modpack_exists(self) -> None:
         """Download the modpack if it doesn't exist."""
-        if not self._modpack_file.exists():
+        if not self.modpack_file.exists():
             self._download_modpack()
 
     def _load_modpack_info(self) -> None:
         """Load and parse modpack information."""
-        self._version = self._get_modpack_version()
-        self.installed_version = self._version.get("installed_version", "unknown")
-        self.minecraft_version = self._version.get("minecraft_version", "unknown")
-        self.modloader = self._version.get("modloader", "unknown")
-        self.modloader_version = self._version.get("modloader_version", "unknown")
-        self.modloader_full = (
-            f"{self.minecraft_version}-{self.modloader}-{self.modloader_version}"
-        )
-        self._etag = self._version.get("etag")
-        self.modpack_index = None
+        if not self._modpacks_info_file.exists():
+            self._installed_modpacks = {}
+            self._selected = None
+            return
+        with open(self._modpacks_info_file, "r") as f:
+            data = json.load(f)
+        temp = ModpacksInfo.from_dict(data)
+        self._installed_modpacks = temp.modpacks
+        self._selected = temp.selected
 
     def _fetch_index_etag(self) -> Optional[str]:
         """Fetch the latest index etag from GitHub."""
@@ -105,27 +237,42 @@ class Modpack:
             # with open(self._modpack_index_file, "wb") as f:
             #     f.write(response.content)
             json_data = json.loads(response.text)
+            # Create modpack entry if it doesn't exist
+            if self._selected not in self._installed_modpacks:
+                modloader = json_data.get("dependencies", {}).get(
+                    "modloader", "unknown"
+                )
+                modloader_version = json_data.get("dependencies", {}).get(
+                    modloader, "unknown"
+                )
+                remote_version = json_data.get("versionId", "0.0.0")
+                minecraft_version = json_data.get("dependencies", {}).get(
+                    "minecraft", "unknown"
+                )
+                self._installed_modpacks[self._selected] = ModpackInfo(
+                    name=self._selected,
+                    installed_version="0.0.0",
+                    remote_version=remote_version,
+                    minecraft_version=minecraft_version,
+                    modloader=modloader,
+                    modloader_version=modloader_version,
+                    etag=None,
+                )
             self.modpack_index = json_data
             self.remote_version = json_data.get("versionId")
-            self._modpack_file = (
-                self._modpack_path / f"{self.name}-{self.remote_version}.mrpack"
-            )
             self._etag = latest_etag
             self._save_index_etag()
             # logging.info(f"Fetched modpack index: {self.remote_version}")
         except httpx.HTTPError as e:
             logging.info(f"Error fetching modpack index: {e}")
             self.modpack_index = None
-
-    def _get_modloader_info(self) -> Tuple[str, str]:
-        """Extract modloader information from dependencies."""
-        dependencies = self.modpack_index.get("dependencies", {})
-        modloaders = [key for key in dependencies if key != "minecraft"]
-        return (
-            (modloaders[0], dependencies[modloaders[0]])
-            if modloaders
-            else ("unknown", "unknown")
-        )
+            self.remote_version = None
+            self._etag = latest_etag
+            self._save_index_etag()
+            # logging.info(f"Fetched modpack index: {self.remote_version}")
+        except httpx.HTTPError as e:
+            logging.info(f"Error fetching modpack index: {e}")
+            self.modpack_index = None
 
     def is_up_to_date(self) -> bool:
         """Check if the installed modpack is up to date."""
@@ -158,19 +305,19 @@ class Modpack:
                             if chunk:
                                 f.write(chunk)
                 return True
-            except (httpx.HTTPError, KeyError, httpx.IncompleteRead) as e:
+            except (httpx.HTTPError, KeyError) as e:
                 logging.info(f"Error downloading file (attempt {attempt + 1}): {e}")
         return False
 
     def _download_modpack(self) -> bool:
         """Download the modpack file from GitHub repo zip."""
-        return self._download_file(self._zip_url, self._modpack_file)
+        return self._download_file(self._zip_url, self.modpack_file)
 
     def _get_modpack_info(self) -> Dict:
         """Extract and parse modpack information from the .mrpack file."""
         try:
-            with zipfile.ZipFile(self._modpack_file, "r") as zf:
-                with zf.open("modpack-main/modrinth.index.json") as f:
+            with zipfile.ZipFile(self.modpack_file, "r") as zf:
+                with zf.open(f"modpack-{self._selected}/modrinth.index.json") as f:
                     return json.load(f)
         except (zipfile.BadZipFile, KeyError, json.JSONDecodeError) as e:
             raise RuntimeError(f"Error getting modpack info: {e}")
@@ -178,20 +325,16 @@ class Modpack:
     def install_mrpack(
         self,
         path: str | os.PathLike,
-        minecraft_directory: str | os.PathLike,
         modpack_directory: str | os.PathLike | None = None,
-        callback: CallbackDict | None = None,
-        mrpack_install_options: MrpackInstallOptions | None = None,
+        callback: mcl.types.CallbackDict | None = None,
+        mrpack_install_options: mcl.mrpack.MrpackInstallOptions | None = None,
         max_workers: int | None = 8,
     ) -> None:
         # https://codeberg.org/JakobDev/minecraft-launcher-lib/src/branch/master/minecraft_launcher_lib/mrpack.py
-        minecraft_directory = os.path.abspath(minecraft_directory)
         path = os.path.abspath(path)
 
-        if modpack_directory is None:
-            modpack_directory = minecraft_directory
-        else:
-            modpack_directory = os.path.abspath(modpack_directory)
+        minecraft_directory = os.path.abspath(settings.minecraft_directory)
+        modpack_directory = Path(minecraft_directory) / "modpacks" / self._selected
 
         if callback is None:
             callback = {}
@@ -200,11 +343,13 @@ class Modpack:
             mrpack_install_options = {}
 
         with zipfile.ZipFile(path, "r") as zf:
-            with zf.open("modpack-main/modrinth.index.json", "r") as f:
-                index: MrpackIndex = json.load(f)
+            with zf.open(f"modpack-{self._selected}/modrinth.index.json", "r") as f:
+                index: mcl.mrpack.MrpackIndex = json.load(f)
 
             # Download the files
-            file_list = _filter_mrpack_files(index["files"], mrpack_install_options)
+            file_list = mcl.mrpack._filter_mrpack_files(
+                index["files"], mrpack_install_options
+            )
 
             callback.get("setStatus", empty)("Завантаження модів...")
             callback.get("setMax", empty)(len(file_list))
@@ -230,17 +375,17 @@ class Modpack:
             self.download_mods(callback, max_workers, mods)
 
             # Extract the overrides
-            self.extract_overrides(modpack_directory, zf)
+            self.extract_overrides(zf)
 
             # apply resource packs from overrides to options.txt
-            self.configure_resource_packs(minecraft_directory, zf)
+            self.configure_resource_packs(zf)
 
             if mrpack_install_options.get("skipDependenciesInstall"):
                 return
 
-            self.setup_mod_loaders(minecraft_directory, callback, index)
+            self.setup_mod_loaders(modpack_directory, callback, index)
 
-    def setup_mod_loaders(self, minecraft_directory, callback, index):
+    def setup_mod_loaders(self, modpack_directory, callback, index):
         if "forge" in index["dependencies"]:
             forge_version = None
             FORGE_DOWNLOAD_URL = "https://maven.minecraftforge.net/net/minecraftforge/forge/{version}/forge-{version}-installer.jar"
@@ -257,18 +402,22 @@ class Modpack:
                     forge_version = current_forge_version
                     break
             else:
-                raise VersionNotFound(index["dependencies"]["forge"])
+                raise mcl.exceptions.VersionNotFound(
+                    f"Forge version {index['dependencies']['forge']} for Minecraft {index['dependencies']['minecraft']} not found."
+                )
 
                 # callback.get("setStatus", empty)(f"Installing Forge {forge_version}")
-            install_forge_version(forge_version, minecraft_directory, callback=callback)
+            mcl.forge.install_forge_version(
+                forge_version, modpack_directory, callback=callback
+            )
 
         if "fabric-loader" in index["dependencies"]:
             # callback.get("setStatus", empty)(
             #     f"Встановлення Fabric {index['dependencies']['fabric-loader']}"
             # )
-            install_fabric(
+            mcl.fabric.install_fabric(
                 index["dependencies"]["minecraft"],
-                minecraft_directory,
+                modpack_directory,
                 loader_version=index["dependencies"]["fabric-loader"],
                 callback=callback,
             )
@@ -277,11 +426,17 @@ class Modpack:
             # callback.get("setStatus", empty)(
             #     f"Встановлення Quilt {index['dependencies']['quilt-loader']}"
             # )
-            install_quilt(
+            mcl.quilt.install_quilt(
                 index["dependencies"]["minecraft"],
-                minecraft_directory,
+                modpack_directory,
                 loader_version=index["dependencies"]["quilt-loader"],
                 callback=callback,
+            )
+
+        else:
+            # install vanilla
+            mcl.install.install_minecraft_version(
+                index["dependencies"]["minecraft"], modpack_directory, callback=callback
             )
 
     def download_mods(self, callback, max_workers, mods):
@@ -298,20 +453,22 @@ class Modpack:
                 count += 1
                 callback.get("setProgress", empty)(count)
 
-    def configure_resource_packs(
-        self, minecraft_directory, zf: zipfile.ZipFile
-    ) -> None:
+    def configure_resource_packs(self, zf: zipfile.ZipFile) -> None:
         """Configure resource packs in options.txt."""
         resource_packs = []
         for zip_name in zf.namelist():
-            if zip_name.startswith("modpack-main/overrides/resourcepacks/"):
+            if zip_name.startswith(
+                f"modpack-{self._selected}/overrides/resourcepacks/"
+            ):
                 # Remove the prefix and get the pack name
-                pack_name = zip_name[len("modpack-main/overrides/resourcepacks/") :]
+                pack_name = zip_name[
+                    len(f"modpack-{self._selected}/overrides/resourcepacks/") :
+                ]
                 if pack_name.endswith(".zip"):
                     resource_packs.append(pack_name)
         if resource_packs:
             # append resource packs to options.txt (not override)
-            options_txt_path = os.path.join(minecraft_directory, "options.txt")
+            options_txt_path = self.modpack_path / "options.txt"
             new_packs = ",".join(
                 [
                     f'"file/{pack}"' if pack.endswith(".zip") else f'"{pack}"'
@@ -365,25 +522,29 @@ class Modpack:
                 with open(options_txt_path, "w") as f:
                     f.write(f"resourcePacks:[{new_packs}]\n")
 
-    def extract_overrides(self, modpack_directory, zf: zipfile.ZipFile) -> None:
+    def extract_overrides(self, zf: zipfile.ZipFile) -> None:
         for zip_name in zf.namelist():
             # Check if the entry is in the overrides and if it is a file
             if (
-                not zip_name.startswith("modpack-main/overrides/")
-                and not zip_name.startswith("modpack-main/client-overrides/")
+                not zip_name.startswith(f"modpack-{self._selected}/overrides/")
+                and not zip_name.startswith(
+                    f"modpack-{self._selected}/client-overrides/"
+                )
             ) or zf.getinfo(zip_name).file_size == 0:
                 continue
 
             # Remove the overrides at the start of the Name
-            if zip_name.startswith("modpack-main/client-overrides/"):
-                file_name = zip_name[len("modpack-main/client-overrides/") :]
+            if zip_name.startswith(f"modpack-{self._selected}/client-overrides/"):
+                file_name = zip_name[
+                    len(f"modpack-{self._selected}/client-overrides/") :
+                ]
             else:
-                file_name = zip_name[len("modpack-main/overrides/") :]
+                file_name = zip_name[len(f"modpack-{self._selected}/overrides/") :]
 
             # Constructs the full Path
-            full_path = os.path.abspath(os.path.join(modpack_directory, file_name))
+            full_path = os.path.abspath(self.modpack_path / file_name)
 
-            check_path_inside_minecraft_directory(modpack_directory, full_path)
+            check_path_inside_minecraft_directory(self.modpack_path, full_path)
 
             # Skip extracting options.txt if it already exists
             if os.path.basename(full_path) == "options.txt" and os.path.exists(
@@ -399,17 +560,15 @@ class Modpack:
             with open(full_path, "wb") as f:
                 f.write(zf.read(zip_name))
 
-    def install(
-        self, minecraft_path: Path, callback: Optional[Callable] = None
-    ) -> bool:
+    def install(self, callback: Optional[Callable] = None) -> bool:
         """Install the modpack to the specified Minecraft directory."""
         try:
             self._ensure_modpack_exists()
+            # self._fetch_latest_index(force=True)
 
             # Install the modpack
             self.install_mrpack(
-                self._modpack_file,
-                minecraft_path,
+                self.modpack_file,
                 callback=callback,
             )
             # Verify the installation
@@ -423,44 +582,42 @@ class Modpack:
             logging.info(f"Modpack {self.name} installed successfully.")
             return True
         except Exception as e:
-            logging.info(f"Error installing modpack: {e}")
+            logging.error(f"Error installing modpack: {e}", exc_info=True)
             return False
 
     def _clear_modpack_file(self) -> None:
         """Clear the modpack file if it exists."""
-        if self._modpack_file and self._modpack_file.exists():
+        if self.modpack_file and self.modpack_file.exists():
             try:
-                self._modpack_file.unlink()
+                self.modpack_file.unlink()
             except Exception as e:
                 logging.error(f"Error clearing modpack file: {e}")
 
     def _save_modpack_version(self) -> None:
         """Save the modpack version information."""
+        # save to self._modpacks_info_file
+        if not self._selected:
+            return
 
-        self.installed_version = self.remote_version
-        self.minecraft_version = self.modpack_index.get("dependencies", {}).get(
-            "minecraft", "unknown"
-        )
-        self.modloader, self.modloader_version = self._get_modloader_info()
-
-        self.modloader_full = (
-            f"{self.minecraft_version}-{self.modloader}-{self.modloader_version}"
-        )
-
-        if not self._modpack_version_file.parent.exists():
-            self._modpack_version_file.parent.mkdir(parents=True)
-
-        with open(self._modpack_version_file, "w") as f:
-            json.dump(
-                {
-                    "installed_version": self.installed_version,
-                    "minecraft_version": self.minecraft_version,
-                    "modloader": self.modloader,
-                    "modloader_version": self.modloader_version,
-                    "etag": self._etag,
-                },
-                f,
-            )
+        self._installed_modpacks[self._selected].installed_version = self.remote_version
+        self._installed_modpacks[self._selected].etag = self._etag
+        data = {
+            "modpacks": {
+                name: {
+                    "name": info.name,
+                    "installed_version": info.installed_version,
+                    "remote_version": info.remote_version,
+                    "minecraft_version": info.minecraft_version,
+                    "modloader": info.modloader,
+                    "modloader_version": info.modloader_version,
+                    "etag": info.etag,
+                }
+                for name, info in self._installed_modpacks.items()
+            },
+            "selected": self._selected,
+        }
+        with open(self._modpacks_info_file, "w") as f:
+            json.dump(data, f)
 
     def _get_modpack_version(self) -> Dict:
         """Get the modpack version information."""
@@ -472,16 +629,12 @@ class Modpack:
 
     def get_launch_version(self) -> Dict:
         """Get the launch version information for the modpack."""
-        if not self._modpack_file.exists():
+        if not self.modpack_file.exists():
             raise FileNotFoundError("Modpack file does not exist")
 
     def update(self, callback: Optional[dict[Callable]] = None) -> None:
         """Update the modpack to the latest version."""
-
-        # Update version information
-        self._modpack_file = (
-            self._modpack_path / f"{self.name}-{self.remote_version}.mrpack"
-        )
+        self._fetch_latest_index(force=True)
 
         # Download and install the update
         if not self._download_modpack():
@@ -491,8 +644,7 @@ class Modpack:
             "skipDependenciesInstall": True,
         }
         self.install_mrpack(
-            self._modpack_file,
-            settings.minecraft_directory,
+            self.modpack_file,
             callback=callback,
             mrpack_install_options=options,
         )
@@ -514,12 +666,11 @@ class Modpack:
 
     def _clean_old_mods(self) -> None:
         """Remove mods that are no longer needed."""
-        mods_dir = os.path.join(settings.minecraft_directory, "mods")
-        if os.path.exists(mods_dir):
-            for mod in os.listdir(mods_dir):
-                mod_path = os.path.join(mods_dir, mod)
-                if os.path.isfile(mod_path) and mod.endswith(".jar"):
-                    os.remove(mod_path)
+        mods_dir = self.modpack_path / "mods"
+        if mods_dir.exists():
+            for mod in mods_dir.iterdir():
+                if mod.is_file() and mod.name.endswith(".jar"):
+                    mod.unlink()
             logging.info("Old mods cleaned up successfully.")
         else:
             logging.info("Mods directory does not exist, skipping cleanup.")
@@ -527,7 +678,10 @@ class Modpack:
     def verify_installation(self) -> bool:
         """Verify that all modpack files are correctly installed."""
         for file in self.modpack_index.get("files", []):
-            file_path = os.path.join(settings.minecraft_directory, file["path"])
+            # file_path = os.path.join(
+            #     settings.minecraft_directory, "modpacks", self.name, file["path"]
+            # )
+            file_path = self.modpack_path / file["path"]
             # Check file existence
             if (
                 "env" in file and file["env"].get("client") == "required"
@@ -549,6 +703,118 @@ class Modpack:
         with open(file_path, "rb") as f:
             file_hash = hashlib.sha1(f.read()).hexdigest()
             return file_hash == expected_hash
+
+    def get_installed_versions(self) -> Dict[str, str]:
+        return mcl.utils.get_installed_versions(self.modpack_path)
+
+    def get_minecraft_command(self, username, uuid, access_token) -> list[str]:
+        options = {
+            "username": username,
+            "uuid": uuid,
+            "token": access_token,
+            "launcherName": LAUNCHER_NAME,
+            "launcherVersion": LAUNCHER_VERSION,
+            "customResolution": True,
+            "resolutionWidth": str(settings.window_width),
+            "resolutionHeight": str(settings.window_height),
+        }
+        options["jvmArguments"] = [
+            f"-javaagent:{settings.minecraft_directory}/authlib-injector.jar={AUTHLIB_INJECTOR_URL}",
+            f"-Xmx{settings.max_use_ram}M",
+            f"-Xms{settings.min_use_ram}M",
+        ]
+        if settings.java_args:
+            options["jvmArguments"].extend(*settings.java_args)
+
+        if not self._selected or self._selected not in self._installed_modpacks:
+            raise RuntimeError("No modpack selected or modpack not installed")
+
+        return mcl.command.get_minecraft_command(
+            self.modloader_full,
+            self.modpack_path,
+            options,
+        )
+
+    def set_modpack(self, modpack_name: Optional[str]) -> None:
+        """Set the current modpack."""
+        if modpack_name and modpack_name not in self._installed_modpacks:
+            logging.info(f"Modpack {modpack_name} is not installed.")
+        self._selected = modpack_name
+        self._fetch_latest_index(force=True)
+        self._save_modpack_version()
+
+    @property
+    def name(self) -> str:
+        return self._selected if self._selected else "main"
+
+    @property
+    def installed_version(self) -> str:
+        if self._selected and self._selected in self._installed_modpacks:
+            return self._installed_modpacks[self._selected].installed_version
+        return "0.0.0"
+
+    @property
+    def remote_version(self) -> str:
+        return (
+            self._installed_modpacks[self._selected].remote_version
+            if self._selected and self._selected in self._installed_modpacks
+            else "0.0.0"
+        )
+
+    @remote_version.setter
+    def remote_version(self, value: str) -> None:
+        if self._selected and self._selected in self._installed_modpacks:
+            self._installed_modpacks[self._selected].remote_version = value
+
+    @property
+    def etag(self) -> Optional[str]:
+        if self._selected and self._selected in self._installed_modpacks:
+            return self._installed_modpacks[self._selected].etag
+        return None
+
+    @etag.setter
+    def etag(self, value: Optional[str]) -> None:
+        if self._selected and self._selected in self._installed_modpacks:
+            self._installed_modpacks[self._selected].etag = value
+
+    @property
+    def modpack_index(self) -> Dict:
+        if self._selected and self._selected in self._installed_modpacks:
+            return self._installed_modpacks[self._selected].modpack_index
+        return {}
+
+    @modpack_index.setter
+    def modpack_index(self, value: Dict) -> None:
+        if self._selected and self._selected in self._installed_modpacks:
+            self._installed_modpacks[self._selected].modpack_index = value
+
+    @property
+    def minecraft_version(self) -> str:
+        if self._selected and self._selected in self._installed_modpacks:
+            return self._installed_modpacks[self._selected].minecraft_version
+        return "unknown"
+
+    @property
+    def modloader_full(self) -> str:
+        if self._selected and self._selected in self._installed_modpacks:
+            if self._installed_modpacks[self._selected].modloader == "unknown":
+                return self.minecraft_version
+            return self._installed_modpacks[self._selected].modloader_full
+        return "unknown-unknown"
+
+    @property
+    def modpack_path(self) -> Optional[Path]:
+        return (
+            Path(settings.minecraft_directory) / "modpacks" / self.name
+            if self._selected
+            else None
+        )
+
+    @property
+    def modpack_file(self) -> Optional[Path]:
+        if self._selected and self._selected in self._installed_modpacks:
+            return self._mrpack_path / f"{self.name}-{self.remote_version}.mrpack"
+        return None
 
 
 # Global modpack instance

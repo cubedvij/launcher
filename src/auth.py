@@ -260,5 +260,16 @@ class Auth:
                 return resp
             return resp
 
+    @property
+    def username(self):
+        return self.user["user"]["players"][0]["name"]
+
+    @property
+    def uuid(self):
+        return self.user["user"]["players"][0]["uuid"]
+
+    @property
+    def access_token(self):
+        return self.account.get("access_token", "")
 
 account = Auth()

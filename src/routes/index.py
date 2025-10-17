@@ -6,7 +6,6 @@ import subprocess
 import httpx
 import flet as ft
 from nava import play
-import minecraft_launcher_lib as mcl
 
 from minestat import MineStat, SlpProtocols
 
@@ -17,14 +16,11 @@ from authlib import authlib
 from updater import updater
 from stats import stats
 from config import (
-    AUTHLIB_INJECTOR_URL,
     BASE_PATH,
     SERVER_IP,
     SKINS_CACHE_FOLDER,
     LAUNCHER_DIRECTORY,
     CHANGELOG_URL,
-    LAUNCHER_NAME,
-    LAUNCHER_VERSION,
     SYSTEM_OS,
 )
 from settings import settings
@@ -211,6 +207,15 @@ class MainPage(ft.View):
         # add new _changelog
         self.pagelet.content.content.controls.append(self._changelog)
 
+    def _change_modpack(self, event: ft.ControlEvent):
+        selected_modpack = event.control.value
+        if selected_modpack not in modpack._remote_modpacks:
+            logging.error(f"Selected modpack {selected_modpack} not found.")
+            return
+        modpack.set_modpack(selected_modpack)
+        # self._check_modpack_update(force=True)
+        self.page.update()
+
     def __open_monobank(self, event: ft.TapEvent):
         play(os.path.join(BASE_PATH, "assets", "mono.wav"), async_mode=True)
         _open_link("https://send.monobank.ua/jar/48bPzh2JmA")
@@ -338,16 +343,29 @@ class MainPage(ft.View):
             tooltip="Відкрити папку з грою",
             on_click=lambda e: _open_link(f"file://{settings.minecraft_directory}"),
         )
+        self._selected_modpack = ft.Dropdown(
+            options=[
+                ft.dropdown.Option(name) for name in modpack._remote_modpacks
+            ],
+            on_change=self._change_modpack,
+            value=modpack._selected,
+            fill_color=ft.Colors.SECONDARY_CONTAINER,
+            width=292,
+            filled=True,
+        )
         self.floating_action_button = ft.Container(
-            ft.Row(
-                [
-                    self._play_button,
-                    self._check_game_button,
-                    self._open_game_folder_button,
-                ],
-                alignment=ft.MainAxisAlignment.END,
-            ),
+                    ft.Row(
+                        [
+                            self._play_button,
+                            self._check_game_button,
+                            self._open_game_folder_button,
+                            self._selected_modpack,
+                        ],
+                        alignment=ft.MainAxisAlignment.END,
+                        expand=False,
+                    ),
             padding=ft.Padding(0, 0, 8, 8),
+            expand=False,
         )
         self.floating_action_button_location = (
             ft.FloatingActionButtonLocation.MINI_CENTER_DOCKED
@@ -442,7 +460,7 @@ class MainPage(ft.View):
                         expand=True,
                     ),
                     self._server_status,
-                    ft.Container(width=120),
+                    ft.Container(width=292),
                     # self._playtime,
                 ],
                 expand=False,
@@ -534,9 +552,7 @@ class MainPage(ft.View):
 
         logging.info("Checking game...")
         # check if game is installed
-        installed_versions = mcl.utils.get_installed_versions(
-            settings.minecraft_directory,
-        )
+        installed_versions = modpack.get_installed_versions()
         installed_versions_list = []
         for version in installed_versions:
             installed_versions_list.append(version["id"])
@@ -557,42 +573,36 @@ class MainPage(ft.View):
         elif not modpack.verify_installation():
             self._update_modpack(event)
         else:
-            self._launch_minecraft(modpack.modloader_full)
+            self._launch_minecraft()
 
-    def _launch_minecraft(self, version):
-        options = {
-            "username": account.user["user"]["players"][0]["name"],
-            "uuid": account.user["user"]["players"][0]["uuid"],
-            "token": account.account["access_token"],
-            "launcherName": LAUNCHER_NAME,
-            "launcherVersion": LAUNCHER_VERSION,
-            "customResolution": True,
-            "resolutionWidth": str(settings.window_width),
-            "resolutionHeight": str(settings.window_height),
-        }
-        options["jvmArguments"] = [
-            f"-javaagent:{settings.minecraft_directory}/authlib-injector.jar={AUTHLIB_INJECTOR_URL}",
-            f"-Xmx{settings.max_use_ram}M",
-            f"-Xms{settings.min_use_ram}M",
-            *settings.java_args,
-        ]
-        minecraft_command = mcl.command.get_minecraft_command(
-            version, settings.minecraft_directory, options
+    def _launch_minecraft(self):
+        # options = {
+        #     "username": account.user["user"]["players"][0]["name"],
+        #     "uuid": account.user["user"]["players"][0]["uuid"],
+        #     "token": account.account["access_token"],
+        #     "launcherName": LAUNCHER_NAME,
+        #     "launcherVersion": LAUNCHER_VERSION,
+        #     "customResolution": True,
+        #     "resolutionWidth": str(settings.window_width),
+        #     "resolutionHeight": str(settings.window_height),
+        # }
+        minecraft_command = modpack.get_minecraft_command(
+            account.username, account.uuid, account.access_token
         )
-        # change working directory to .minecraft
-        os.chdir(settings.minecraft_directory)
         if self._check_minecraft_running():
             logging.info("Minecraft is already running.")
             return
         if SYSTEM_OS == "Windows":
             self._minecraft_process = subprocess.Popen(
                 minecraft_command,
+                cwd=modpack.modpack_path,
                 creationflags=subprocess.CREATE_NO_WINDOW,
                 start_new_session=True,
             )
         elif SYSTEM_OS == "Linux":
             self._minecraft_process = subprocess.Popen(
                 minecraft_command,
+                cwd=modpack.modpack_path,
                 start_new_session=True,
             )
         self.page.run_task(self._check_minecraft)
@@ -633,7 +643,6 @@ class MainPage(ft.View):
         # install modpack
         self._set_progress_text("Встановлення модпаку...")
         if not modpack.install(
-            settings.minecraft_directory,
             self._download_callback,
         ):
             logging.error("Failed to install modpack.")

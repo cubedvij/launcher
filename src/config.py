@@ -40,9 +40,6 @@ CHANGELOG_URL = (
     f"https://raw.githubusercontent.com/{MODPACK_REPO}/refs/heads/main/README.md"
 )
 
-MODPACK_INDEX_URL = (
-    f"https://raw.githubusercontent.com/{MODPACK_REPO}/refs/heads/main/modrinth.index.json"
-)
 MODPACK_REPO_URL = f"https://github.com/{MODPACK_REPO}"
 LATEST_LAUNCHER_RELEASE_URL = (
     "https://api.github.com/repos/cubedvij/launcher/releases/latest"
