@@ -61,7 +61,7 @@ class SettingsPage(ft.View):
             bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
         )
         self._min_ram_field = ft.TextField(
-            value=settings.min_use_ram,
+            value=settings.game.min_use_ram,
             width=200,
             input_filter=ft.InputFilter(regex_string=r"^[0-9]*$"),
             suffix=ft.Row(
@@ -93,7 +93,7 @@ class SettingsPage(ft.View):
         )
 
         self._max_ram_field = ft.TextField(
-            value=settings.max_use_ram,
+            value=settings.game.max_use_ram,
             width=200,
             suffix_text="МБ",
             input_filter=ft.InputFilter(regex_string=r"^[0-9]*$"),
@@ -126,7 +126,7 @@ class SettingsPage(ft.View):
             ),
         )
         self._java_args_field = ft.TextField(
-            value=" ".join(settings.java_args),
+            value=" ".join(settings.game.java_args),
             multiline=True,
             expand=True,
             min_lines=32,
@@ -169,12 +169,12 @@ class SettingsPage(ft.View):
         )
         self._is_fullscreen_game = ft.ListTile(
             title=ft.Text("Повноекранний режим:"),
-            trailing=ft.Checkbox(value=settings.fullscreen),
+            trailing=ft.Checkbox(value=settings.game.fullscreen),
         )
         self._game_window_width = ft.ListTile(
             title=ft.Text("Ширина:"),
             trailing=ft.TextField(
-                value=settings.window_width,
+                value=settings.game.window_width,
                 width=200,
                 input_filter=ft.InputFilter(regex_string=r"^[0-9]*$"),
                 suffix=ft.Text("px"),
@@ -183,7 +183,7 @@ class SettingsPage(ft.View):
         self._game_window_eight = ft.ListTile(
             title=ft.Text("Висота:"),
             trailing=ft.TextField(
-                value=settings.window_height,
+                value=settings.game.window_height,
                 width=200,
                 input_filter=ft.InputFilter(regex_string=r"^[0-9]*$"),
                 suffix=ft.Text("px"),
@@ -845,23 +845,23 @@ class SettingsPage(ft.View):
         self.update()
 
     async def reload_settings(self):
-        self._min_ram_field.value = settings.min_use_ram
-        self._max_ram_field.value = settings.max_use_ram
-        self._java_args_field.value = " ".join(settings.java_args)
-        self._is_fullscreen_game.trailing.value = settings.fullscreen
-        self._game_window_width.trailing.value = settings.window_width
-        self._game_window_eight.trailing.value = settings.window_height
+        self._min_ram_field.value = settings.game.min_use_ram
+        self._max_ram_field.value = settings.game.max_use_ram
+        self._java_args_field.value = " ".join(settings.game.java_args)
+        self._is_fullscreen_game.trailing.value = settings.game.fullscreen
+        self._game_window_width.trailing.value = settings.game.window_width
+        self._game_window_eight.trailing.value = settings.game.window_height
         self._minimize_launcher.trailing.value = settings.minimize_launcher
         self._quit_launcher.trailing.value = settings.close_launcher
         self._minecraft_dir_field.value = settings.minecraft_directory
 
     def go_index(self, event):
-        settings.min_use_ram = int(self._min_ram_field.value)
-        settings.max_use_ram = int(self._max_ram_field.value)
-        settings.java_args = self._java_args_field.value.split(" ")
-        settings.fullscreen = self._is_fullscreen_game.trailing.value
-        settings.window_width = int(self._game_window_width.trailing.value)
-        settings.window_height = int(self._game_window_eight.trailing.value)
+        settings.game.min_use_ram = int(self._min_ram_field.value)
+        settings.game.max_use_ram = int(self._max_ram_field.value)
+        settings.game.java_args = self._java_args_field.value.split(" ")
+        settings.game.fullscreen = self._is_fullscreen_game.trailing.value
+        settings.game.window_width = int(self._game_window_width.trailing.value)
+        settings.game.window_height = int(self._game_window_eight.trailing.value)
         settings.minimize_launcher = self._minimize_launcher.trailing.value
         settings.close_launcher = self._quit_launcher.trailing.value
         settings.minecraft_directory = self._minecraft_dir_field.value

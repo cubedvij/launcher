@@ -203,9 +203,9 @@ class MainPage(ft.View):
             extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
         )
         # remove all
-        self.pagelet.content.content.controls.clear()
+        self.changelog_section.controls.clear()
         # add new _changelog
-        self.pagelet.content.content.controls.append(self._changelog)
+        self.changelog_section.controls.append(self._changelog)
 
     def _change_modpack(self, event: ft.ControlEvent):
         selected_modpack = event.control.value
@@ -344,9 +344,7 @@ class MainPage(ft.View):
             on_click=lambda e: _open_link(f"file://{settings.minecraft_directory}"),
         )
         self._selected_modpack = ft.Dropdown(
-            options=[
-                ft.dropdown.Option(name) for name in modpack._remote_modpacks
-            ],
+            options=[ft.dropdown.Option(name) for name in modpack._remote_modpacks],
             on_change=self._change_modpack,
             value=modpack._selected,
             fill_color=ft.Colors.SECONDARY_CONTAINER,
@@ -354,16 +352,16 @@ class MainPage(ft.View):
             filled=True,
         )
         self.floating_action_button = ft.Container(
-                    ft.Row(
-                        [
-                            self._play_button,
-                            self._check_game_button,
-                            self._open_game_folder_button,
-                            self._selected_modpack,
-                        ],
-                        alignment=ft.MainAxisAlignment.END,
-                        expand=False,
-                    ),
+            ft.Row(
+                [
+                    self._play_button,
+                    self._check_game_button,
+                    self._open_game_folder_button,
+                    self._selected_modpack,
+                ],
+                alignment=ft.MainAxisAlignment.END,
+                expand=False,
+            ),
             padding=ft.Padding(0, 0, 8, 8),
             expand=False,
         )
@@ -466,16 +464,19 @@ class MainPage(ft.View):
                 expand=False,
             ),
         )
+        self.changelog_section = ft.Column(
+            controls=[self._changelog],
+            scroll=ft.ScrollMode.AUTO,
+        )
+
         self.pagelet = ft.Pagelet(
             expand=True,
             appbar=self._appbar,
             # bottom_app_bar=self._bottom_bar,
             content=ft.Container(
                 padding=ft.Padding(0, 8, 0, 8),
-                content=ft.Column(
-                    controls=[self._changelog],
-                    scroll=ft.ScrollMode.AUTO,
-                ),
+                content=self.changelog_section,
+                expand=True,
             ),
         )
         self.controls.append(self.pagelet)
@@ -576,35 +577,20 @@ class MainPage(ft.View):
             self._launch_minecraft()
 
     def _launch_minecraft(self):
-        # options = {
-        #     "username": account.user["user"]["players"][0]["name"],
-        #     "uuid": account.user["user"]["players"][0]["uuid"],
-        #     "token": account.account["access_token"],
-        #     "launcherName": LAUNCHER_NAME,
-        #     "launcherVersion": LAUNCHER_VERSION,
-        #     "customResolution": True,
-        #     "resolutionWidth": str(settings.window_width),
-        #     "resolutionHeight": str(settings.window_height),
-        # }
         minecraft_command = modpack.get_minecraft_command(
             account.username, account.uuid, account.access_token
         )
         if self._check_minecraft_running():
             logging.info("Minecraft is already running.")
             return
-        if SYSTEM_OS == "Windows":
-            self._minecraft_process = subprocess.Popen(
-                minecraft_command,
-                cwd=modpack.modpack_path,
-                creationflags=subprocess.CREATE_NO_WINDOW,
-                start_new_session=True,
-            )
-        elif SYSTEM_OS == "Linux":
-            self._minecraft_process = subprocess.Popen(
-                minecraft_command,
-                cwd=modpack.modpack_path,
-                start_new_session=True,
-            )
+        self._minecraft_process = subprocess.Popen(
+            minecraft_command,
+            cwd=modpack.modpack_path,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            creationflags=subprocess.CREATE_NO_WINDOW if SYSTEM_OS == "Windows" else 0,
+            start_new_session=True,
+        )
         self.page.run_task(self._check_minecraft)
         self._play_button_stop()
         self._check_game_button_disable()
@@ -798,12 +784,59 @@ class MainPage(ft.View):
 
     # if minecraft is not running, enable play button, check in loop
     async def _check_minecraft(self):
+        self.minecraft_stdout = []
+        self.minecraft_stderr = []
         while True:
+            self.minecraft_stdout += self._minecraft_process.stdout.readlines()
+            self.minecraft_stderr += self._minecraft_process.stderr.readlines()
+
             if not self._check_minecraft_running():
+                if self._minecraft_process.returncode == 1:
+                    alert_dialog = ft.AlertDialog(
+                        title=ft.Row(
+                            [
+                                ft.Icon(
+                                    ft.Icons.ERROR, color=ft.Colors.ON_ERROR_CONTAINER
+                                ),
+                                ft.Text("Помилка запуску Minecraft"),
+                            ],
+                            alignment=ft.MainAxisAlignment.START,
+                        ),
+                        # add latest stderr content (last 100 lines)
+                        # add scrollable text area
+                        content=ft.Container(
+                            padding=ft.Padding(8, 8, 8, 8),
+                            content=ft.Text(
+                                "".join(
+                                    [
+                                        line.decode("utf-8")
+                                        for line in self.minecraft_stderr[-100:]
+                                    ]
+                                ),
+                                size=12,
+                                text_align=ft.TextAlign.LEFT,
+                                selectable=True,
+                            ),
+                            width=600,
+                            border_radius=0,
+                            bgcolor=ft.Colors.SECONDARY_CONTAINER,
+                            expand=True,
+                        ),
+                        actions=[
+                            ft.TextButton(
+                                "Закрити",
+                                on_click=lambda e: self.page.close(alert_dialog),
+                            )
+                        ],
+                        content_padding=ft.Padding(16, 16, 16, 16),
+                        title_padding=ft.Padding(16, 16, 16, 0),
+                        action_button_padding=ft.Padding(0, 0, 0, 0),
+                    )
+                    self.page.open(alert_dialog)
                 self._play_button_enable()
                 self._check_game_button_enable()
                 self.page.window.to_front()
-                self.page.update()
+                self.update()
                 break
             await asyncio.sleep(2)
 

@@ -1,3 +1,4 @@
+from datetime import datetime
 import time
 import hashlib
 import json
@@ -77,11 +78,12 @@ class Modpack:
         self._remote_modpacks: list[str] = []
         self._selected: Optional[str] = None
         self._mrpack_path = None
-        self.fetch_modpacks()
         self._setup_paths()
+        self._load_installed_modpacks()
+        self.fetch_modpacks()
         self._load_modpack_info()
-        settings.minecraft_options = f"{self.modpack_path}/options.txt"
-        
+        settings.modpack_name = self.name
+
         # self._fetch_latest_index(force=True)
         # self._load_modpack_info()
         # self._ensure_modpack_exists()
@@ -95,10 +97,19 @@ class Modpack:
     def _zip_url(self) -> str:
         return f"{MODPACK_REPO_URL}/archive/refs/heads/{self._selected}.zip"
 
+    def _load_installed_modpacks(self) -> None:
+        self._installed_modpacks = {}
+        if not self._modpacks_info_file.exists():
+            return
+        with open(self._modpacks_info_file, "r") as f:
+            data = json.load(f)
+        temp = ModpacksInfo.from_dict(data)
+        self._installed_modpacks = temp.modpacks
+
     def fetch_modpacks(self) -> None:
         # Check cache first
         cache_file = APPDATA_FOLDER / "modpacks_cache.json"
-        cache_duration = 300  # 5 minutes in seconds
+        cache_duration = 600  # 10 minutes in seconds
 
         if cache_file.exists():
             try:
@@ -135,12 +146,18 @@ class Modpack:
                 with open(cache_file, "w") as f:
                     json.dump(cache_data, f)
             else:
-                logging.info(f"Error fetching modpacks: {resp.status_code}")
-                # apply installed modpsacks as remote
+                # get rate limit expire time
+                rate_limit_reset = resp.headers.get("X-RateLimit-Reset")
+                if rate_limit_reset:
+                    reset_time = datetime.fromtimestamp(int(rate_limit_reset))
+                    logging.info(f"Rate limit exceeded. Try again at {reset_time}.")
+                else:
+                    logging.info(f"Error fetching modpacks: {resp.status_code}")
+                # apply installed modpacks as remote
                 self._remote_modpacks = list(self._installed_modpacks.keys())
         except Exception as e:
             logging.info(f"Error fetching modpacks: {e}")
-            self._remote_modpacks = []
+            self._remote_modpacks = list(self._installed_modpacks.keys())
 
     def _on_load(self) -> None:
         self._load_modpack_info()
@@ -716,16 +733,16 @@ class Modpack:
             "launcherName": LAUNCHER_NAME,
             "launcherVersion": LAUNCHER_VERSION,
             "customResolution": True,
-            "resolutionWidth": str(settings.window_width),
-            "resolutionHeight": str(settings.window_height),
+            "resolutionWidth": str(settings.game.window_width),
+            "resolutionHeight": str(settings.game.window_height),
         }
         options["jvmArguments"] = [
             f"-javaagent:{settings.minecraft_directory}/authlib-injector.jar={AUTHLIB_INJECTOR_URL}",
-            f"-Xmx{settings.max_use_ram}M",
-            f"-Xms{settings.min_use_ram}M",
+            f"-Xmx{settings.game.max_use_ram}M",
+            f"-Xms{settings.game.min_use_ram}M",
         ]
-        if settings.java_args:
-            options["jvmArguments"].extend(*settings.java_args)
+        if settings.game.java_args:
+            options["jvmArguments"].extend(settings.game.java_args)
 
         if not self._selected or self._selected not in self._installed_modpacks:
             raise RuntimeError("No modpack selected or modpack not installed")
@@ -742,7 +759,7 @@ class Modpack:
             logging.info(f"Modpack {modpack_name} is not installed.")
         self._selected = modpack_name
         self._fetch_latest_index(force=True)
-        settings.minecraft_options = f"{self.modpack_path}/options.txt"
+        settings.modpack_name = self.name
         settings._load_fullscreen()
         self._save_modpack_version()
 
