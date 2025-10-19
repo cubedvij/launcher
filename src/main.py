@@ -43,6 +43,8 @@ async def main(page: ft.Page):
             await views[event.route].update_user_info(event)
         if event.route == "/profile":
             await views[event.route].update_user_info(event)
+        if event.route == "/settings":
+            await views[event.route].reload_settings()
         page.update()
 
     page.on_route_change = route_change

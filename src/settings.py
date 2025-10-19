@@ -9,7 +9,7 @@ class Settings:
         self._settings_file = os.path.join(APPDATA_FOLDER, "settings.json")
         # Game settings
         self.minecraft_directory = APPDATA_FOLDER / ".minecraft"
-        self.minecraft_options = self.minecraft_directory / "options.txt"
+        self.minecraft_options = None  # to be set externally if needed
         self.launcher_theme = "system"
         self.launcher_color = "deeppurple"
         self.launcher_border_radius = 8
@@ -110,7 +110,23 @@ class Settings:
                     f.write(f"fullscreen:{str(self.fullscreen).lower()}\n")
                 else:
                     f.write(line)
-                    
+    
+    def _load_fullscreen(self):
+        if not os.path.exists(self.minecraft_options):
+            self.fullscreen = False
+            return
+
+        with open(self.minecraft_options, "r") as f:
+            lines = f.readlines()
+
+        for line in lines:
+            if line.startswith("fullscreen:"):
+                value = line.split(":", 1)[1].strip().lower()
+                self.fullscreen = value == "true"
+                return
+        else:
+            self.fullscreen = False
+            self._set_fullscreen()
 
 
 settings = Settings()

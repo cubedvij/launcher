@@ -719,18 +719,17 @@ class SettingsPage(ft.View):
             self._loading_indicator.visible = False
             self._loading_indicator.disabled = True
             self._dir_picker.update()
-            self.page.update()
+            self.update()
 
     def _clear_minecraft_dir(self, event):
         self._dialog.open = True
-        self.page.update()
+        self.update()
 
     def _clear_minecraft_dir_confirmed(self, event):
         self._dialog.open = False
-        self.page.update()
         self._loading_indicator.visible = True
         self._loading_indicator.disabled = False
-        self.page.update()
+        self.update()
         mc_dir = settings.minecraft_directory
         try:
             for filename in os.listdir(mc_dir):
@@ -745,7 +744,7 @@ class SettingsPage(ft.View):
         finally:
             self._loading_indicator.visible = False
             self._loading_indicator.disabled = True
-            self.page.update()
+            self.update()
 
     def _open_minecraft_dir(self, event):
         mc_dir = settings.minecraft_directory
@@ -775,20 +774,20 @@ class SettingsPage(ft.View):
         self._snack_bar.content = ft.Text(message)
         self._snack_bar.bgcolor = color
         self._snack_bar.open = True
-        self.page.update()
+        self.update()
 
     def launcher_theme_change(self, event):
         settings.launcher_theme = event.data
         settings.save()
         self.page.theme_mode = event.data
-        self.page.update()
+        self.update()
 
     def launcher_color_change(self, event):
         settings.launcher_color = event.data
         settings.save()
         self.page.theme.color_scheme_seed = event.data
         self._launcher_color.trailing.leading_icon.color = event.data
-        self.page.update()
+        self.update()
 
     def _increase_launcher_border_radius(self, event):
         value = int(self._launcher_border_radius.trailing.value)
@@ -803,7 +802,7 @@ class SettingsPage(ft.View):
             settings.launcher_border_radius,
             settings.launcher_border_shape,
         )
-        self.page.update()
+        self.update()
 
     def _decrease_launcher_border_radius(self, event):
         value = int(self._launcher_border_radius.trailing.value)
@@ -818,7 +817,7 @@ class SettingsPage(ft.View):
             settings.launcher_border_radius,
             settings.launcher_border_shape,
         )
-        self.page.update()
+        self.update()
 
     def _launcher_border_shape_change(self, event):
         settings.launcher_border_shape = event.data
@@ -829,7 +828,7 @@ class SettingsPage(ft.View):
             settings.launcher_border_radius,
             settings.launcher_border_shape,
         )
-        self.page.update()
+        self.update()
 
     def _launcher_border_radius_change(self, event):
         value = int(event.data)
@@ -843,7 +842,18 @@ class SettingsPage(ft.View):
             settings.launcher_border_radius,
             settings.launcher_border_shape,
         )
-        self.page.update()
+        self.update()
+
+    async def reload_settings(self):
+        self._min_ram_field.value = settings.min_use_ram
+        self._max_ram_field.value = settings.max_use_ram
+        self._java_args_field.value = " ".join(settings.java_args)
+        self._is_fullscreen_game.trailing.value = settings.fullscreen
+        self._game_window_width.trailing.value = settings.window_width
+        self._game_window_eight.trailing.value = settings.window_height
+        self._minimize_launcher.trailing.value = settings.minimize_launcher
+        self._quit_launcher.trailing.value = settings.close_launcher
+        self._minecraft_dir_field.value = settings.minecraft_directory
 
     def go_index(self, event):
         settings.min_use_ram = int(self._min_ram_field.value)

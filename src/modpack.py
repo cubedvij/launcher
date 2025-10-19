@@ -80,7 +80,8 @@ class Modpack:
         self.fetch_modpacks()
         self._setup_paths()
         self._load_modpack_info()
-
+        settings.minecraft_options = f"{self.modpack_path}/options.txt"
+        
         # self._fetch_latest_index(force=True)
         # self._load_modpack_info()
         # self._ensure_modpack_exists()
@@ -741,6 +742,8 @@ class Modpack:
             logging.info(f"Modpack {modpack_name} is not installed.")
         self._selected = modpack_name
         self._fetch_latest_index(force=True)
+        settings.minecraft_options = f"{self.modpack_path}/options.txt"
+        settings._load_fullscreen()
         self._save_modpack_version()
 
     @property
